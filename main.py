@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 from supabase import create_client
+from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 from blog_apis import blog_router#blogs routes import
@@ -9,9 +10,23 @@ from jobs import jobs_router#jobs routes import
 from auth import get_current_user, check_admin_or_subadmin
 import time
 
+app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 load_dotenv()
 
-app = FastAPI()
 #Get blog routes
 app.include_router(blog_router)
 app.include_router(jobs_router)
@@ -58,11 +73,16 @@ def login(data: LoginRequest):
     if auth_response.session is None:
         raise HTTPException(status_code=401, detail="invalid credentials")
 
+    # Get user role from supabase
+    user = auth_response.user
+    role_data = supabase.table("user_roles").select("role").eq("user_id", user.id).execute()
+    role = role_data.data[0]['role'] if role_data.data else 'user'
+
     #return jwt token
     return {
         "access_token": auth_response.session.access_token,
         "token_type": "bearer",
-        "Role": check_admin_or_subadmin(get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=auth_response.session.access_token))),
+        "Role": role,
         "email": data.email
     }
 

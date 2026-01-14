@@ -21,7 +21,7 @@ supabase = create_client(
 def create_job(job: dict, user=Depends(get_current_user)):
 
     check_admin_or_subadmin(user)
-    
+
     if not job.get("title") or not job.get("role_description"):
         raise HTTPException(status_code=400, detail="Missing fields")
 
@@ -39,13 +39,13 @@ def create_job(job: dict, user=Depends(get_current_user)):
     return response.data
 
 #Get one api
-@app.get("/jobs/{job_id}")
+@jobs_router.get("/jobs/{job_id}")
 def get_job(job_id: str):
     response = supabase.table("jobs").select("*").eq("id", job_id).execute()
     return response.data
 
 #Get all jobs api
-@app.get("/jobs")
+@jobs_router.get("/jobs")
 def get_all_jobs():
     reponse = supabase.table("jobs").select("*").execute()
     return reponse.data
@@ -53,7 +53,6 @@ def get_all_jobs():
 #jobs update api
 @jobs_router.put("/{job_id}")
 def update_job(job_id, job: dict, user=Depends(get_current_user)):
-    
     check_admin_or_subadmin(user)
 
     response = supabase.table("jobs").update(job).eq("id", job_id).execute()
@@ -62,7 +61,21 @@ def update_job(job_id, job: dict, user=Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Job not found")
 
     return response.data
- 
+
+#jobs publish api
+@jobs_router.patch("/{job_id}/publish")
+def publish_job(job_id, user=Depends(get_current_user)):             
+    check_admin_or_subadmin(user)
+    response = supabase.table("jobs").update({"status": "live"}).eq("id", job_id).execute() 
+    return {"message": "Job live successfully"}
+
+#jobs close api
+@jobs_router.patch("/{job_id}/close")
+def close_job(job_id, user=Depends(get_current_user)):
+    check_admin_or_subadmin(user)
+    response = supabase.table("jobs").update({"status": "closed"}).eq("id", job_id).execute()
+    return {"message": "Job closed successfully"}
+
 #delete job api
 @jobs_router.delete("/{job_id}")
 def delete_job(job_id, user=Depends(get_current_user)):
