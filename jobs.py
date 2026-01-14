@@ -1,0 +1,77 @@
+from fastapi import FastAPI,APIRouter, HTTPException, Depends
+from supabase import create_client, Client
+import os
+from dotenv import load_dotenv
+from auth import get_current_user, check_admin_or_subadmin
+
+#Job router to route job apis
+jobs_router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+load_dotenv()
+
+app = FastAPI()
+#supaabase connection
+supabase = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+)
+
+#Create job api
+@jobs_router.post("/")
+def create_job(job: dict, user=Depends(get_current_user)):
+
+    check_admin_or_subadmin(user)
+    
+    if not job.get("title") or not job.get("role_description"):
+        raise HTTPException(status_code=400, detail="Missing fields")
+
+    response = supabase.table("jobs").insert({
+        "title": job["title"],  # job title
+        "role_description": job["role_description"],  # job summary
+        "responsibilities": job.get("responsibilities"),  # optional
+        "requirements": job.get("requirements"),  # optional
+        "salary_min": job.get("salary_min"),  # optional
+        "salary_max": job.get("salary_max"),  # optional
+        "location": job.get("location"),  # optional
+        "status": "draft"  # default state
+    }).execute()
+    
+    return response.data
+
+#Get one api
+@app.get("/jobs/{job_id}")
+def get_job(job_id: str):
+    response = supabase.table("jobs").select("*").eq("id", job_id).execute()
+    return response.data
+
+#Get all jobs api
+@app.get("/jobs")
+def get_all_jobs():
+    reponse = supabase.table("jobs").select("*").execute()
+    return reponse.data
+
+#jobs update api
+@jobs_router.put("/{job_id}")
+def update_job(job_id, job: dict, user=Depends(get_current_user)):
+    
+    check_admin_or_subadmin(user)
+
+    response = supabase.table("jobs").update(job).eq("id", job_id).execute()
+    
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return response.data
+ 
+#delete job api
+@jobs_router.delete("/{job_id}")
+def delete_job(job_id, user=Depends(get_current_user)):
+
+    check_admin_or_subadmin(user)
+
+    response = supabase.table("jobs").delete().eq("id", job_id).execute()
+    
+    return {"message": "Job deleted successfully"}
+
+
+    

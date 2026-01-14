@@ -26,3 +26,18 @@ def get_current_user(cred: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="invalid token")
 
     return user
+
+#Make Function for Role check
+def check_admin_or_subadmin(user):# It gets user return from get_current_user function
+    #Fetch user role from user_roles table
+    role_data = supabase.table("user_roles").select("role").eq("user_id", user.user.id).execute()
+    #if no role is found 
+    if not role_data.data:
+        raise HTTPException(status_code=403, detail="Role not found")
+    # Get the role
+    role = role_data.data[0]['role']
+    #Role check for admin and subadmin
+    if role_data.data[0]['role'] not in ['admin', 'subadmin']:
+        raise HTTPException(status_code=403, detail="Access forbidden: Admins and Subadmins only")
+
+    return role

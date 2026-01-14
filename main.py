@@ -4,14 +4,17 @@ from pydantic import BaseModel
 from supabase import create_client
 import os
 from dotenv import load_dotenv
-from blog_apis import blog_router
-from auth import get_current_user
+from blog_apis import blog_router#blogs routes import
+from jobs import jobs_router#jobs routes import
+from auth import get_current_user, check_admin_or_subadmin
+import time
 
 load_dotenv()
 
 app = FastAPI()
 #Get blog routes
 app.include_router(blog_router)
+app.include_router(jobs_router)
 #Security 
 security = HTTPBearer()
 
@@ -58,26 +61,25 @@ def login(data: LoginRequest):
     #return jwt token
     return {
         "access_token": auth_response.session.access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        # "Role": role.data[0]['role'],
+        "email": data.email
     }
 
 #admin api call after logged in
-@app.get("/admin") #first run get_current_user to verify token
+@app.get("/admin") #first get get_current_user to verify token
 def admin_dashboard(user=Depends(get_current_user)):
-    #Match the currently loggedin user with user in table
+    
+    check_admin_or_subadmin(user)
+    #Fetch and check user role from user_roles table
     role_data = supabase.table("user_roles").select("role").eq("user_id", user.user.id).execute()
-     #Check if user is not admin
+
      #if no role is found
-    if not role_data.data:
-        raise HTTPException(status_code=403, detail="Role not found")
     if role_data.data[0]['role'] != 'admin':
-        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+        raise HTTPException(status_code=403, detail="Access for Admins only")
     
     return {"message": "Welcome to the admin dashboard"}
 
-# @app.get("/")
-# def root():
-#     return {"status": "working"}
-
-
-
+# #Get user profile
+# @app.get("/profile")
+# def get_profile(user=Depends(get_current_user)):
