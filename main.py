@@ -62,7 +62,7 @@ def login(data: LoginRequest):
     return {
         "access_token": auth_response.session.access_token,
         "token_type": "bearer",
-        # "Role": role.data[0]['role'],
+        "Role": check_admin_or_subadmin(get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=auth_response.session.access_token))),
         "email": data.email
     }
 
@@ -70,7 +70,6 @@ def login(data: LoginRequest):
 @app.get("/admin") #first get get_current_user to verify token
 def admin_dashboard(user=Depends(get_current_user)):
     
-    check_admin_or_subadmin(user)
     #Fetch and check user role from user_roles table
     role_data = supabase.table("user_roles").select("role").eq("user_id", user.user.id).execute()
 
