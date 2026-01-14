@@ -15,11 +15,10 @@ app = FastAPI()
 origins = [
     "http://localhost",
     "http://localhost:3000",
-    "http://localhost:8000",
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,7 +88,6 @@ def login(data: LoginRequest):
 #admin api call after logged in
 @app.get("/admin") #first get get_current_user to verify token
 def admin_dashboard(user=Depends(get_current_user)):
-    
     #Fetch and check user role from user_roles table
     role_data = supabase.table("user_roles").select("role").eq("user_id", user.user.id).execute()
 
