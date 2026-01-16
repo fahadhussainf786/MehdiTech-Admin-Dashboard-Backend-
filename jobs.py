@@ -22,17 +22,17 @@ def create_job(job: dict, user=Depends(get_current_user)):
 
     check_admin_or_subadmin(user)
 
-    if not job.get("title") or not job.get("role_description"):
-        raise HTTPException(status_code=400, detail="Missing fields")
+    # if not job.get("title") or not job.get("role_description"):
+    #     raise HTTPException(status_code=400, detail="Missing fields")
 
     response = supabase.table("jobs").insert({
         "title": job["title"],  # job title
-        "Department": job["role_description"],  # job summary
-        "responsibilities": job.get("responsibilities"),  # optional
-        "requirements": job.get("requirements"),  # optional
-        "salary_min": job.get("salary_min"),  # optional
-        "salary_max": job.get("salary_max"),  # optional
-        "location": job.get("location"),  # optional
+        "department": job["department"],
+        "employment_type": job["emp_type"],  # job summary
+        "job_description": job["job_des"],  # optional
+        "qualifications": job["qualifications"],
+        "salary_range": job["salary_range"],  # optional # optional
+        "location": job["location"],  # optional
         "status": "draft"  # default state
     }).execute()
 
