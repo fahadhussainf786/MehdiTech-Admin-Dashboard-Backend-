@@ -20,6 +20,11 @@ supabase = create_client(
 #Setup bearer authentication
 security = HTTPBearer()
 
+# Handle OPTIONS for CORS preflight
+@blog_router.options("/")
+def options_handler():
+    return {}
+
 #create_blog api
 @blog_router.post("/")
 def create_blog(title:str = Form(...),#Parameters that passes to supabase table
