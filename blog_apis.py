@@ -42,7 +42,7 @@ def create_blog(title:str = Form(...),#Parameters that passes to supabase table
         for img in internal_images:
             url = upload_image(img.file)
             internal_urls.append(url)
-
+    
     # Convert comma text to list
     tags_list = tags.split(",")
     #Insert blog into blogs table
