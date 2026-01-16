@@ -3,7 +3,6 @@
 This is a FastAPI application for user authentication, blog management, and job management using Supabase for database and authentication, and Cloudinary for image uploads.
 
 ## Setup
-
 1. Install dependencies:
    ```
    pip install fastapi uvicorn supabase python-dotenv cloudinary python-multipart
