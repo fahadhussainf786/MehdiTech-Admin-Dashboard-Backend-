@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from supabase import create_client
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +11,10 @@ from jobs import jobs_router#jobs routes import
 from automated_email import email_router#emails routes import
 from auth import get_current_user, check_admin_or_subadmin
 import time
+import traceback
 
 app = FastAPI()
+
 #Cors for giving access to frontend access
 origins = [
     "http://localhost:5173",
@@ -25,7 +28,25 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Global exception handler to ensure CORS headers on errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Log the error for debugging
+    print(f"Global error: {exc}")
+    traceback.print_exc()
+    
+    # Return JSON response with CORS-friendly error
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
 
 load_dotenv()
 

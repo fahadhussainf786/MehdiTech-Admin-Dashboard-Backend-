@@ -7,6 +7,7 @@ from auth import get_current_user, check_admin_or_subadmin
 from cloudinary_utils import upload_image
 from fastapi import UploadFile, File, Form, Depends
 from typing import List, Optional
+import traceback
 
 load_dotenv()
 #Create router for blogs
@@ -20,11 +21,6 @@ supabase = create_client(
 #Setup bearer authentication
 security = HTTPBearer()
 
-# Handle OPTIONS for CORS preflight
-@blog_router.options("/")
-def options_handler():
-    return {}
-
 #create_blog api
 @blog_router.post("/")
 def create_blog(title:str = Form(...),#Parameters that passes to supabase table
@@ -34,35 +30,55 @@ def create_blog(title:str = Form(...),#Parameters that passes to supabase table
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
                 image: Optional[UploadFile] = File(None), user=Depends(get_current_user)):
-
-    #Role check
-    check_admin_or_subadmin(user)
-    #upload image to cloudinary
-    image_url = None
-    if image:
-        image_url = upload_image(image.file)
-    #Store internal image urls
-    internal_urls = []
-    if internal_images:
-        for img in internal_images:
-            url = upload_image(img.file)
-            internal_urls.append(url)
+    try:
+        #Role check
+        check_admin_or_subadmin(user)
+        
+        #upload image to cloudinary
+        image_url = None
+        if image:
+            try:
+                image_url = upload_image(image.file)
+            except Exception as img_err:
+                print(f"Image upload error: {img_err}")
+                traceback.print_exc()
+                raise HTTPException(status_code=400, detail=f"Image upload failed: {str(img_err)}")
+        
+        #Store internal image urls
+        internal_urls = []
+        if internal_images:
+            for img in internal_images:
+                try:
+                    url = upload_image(img.file)
+                    internal_urls.append(url)
+                except Exception as img_err:
+                    print(f"Internal image upload error: {img_err}")
+                    raise HTTPException(status_code=400, detail=f"Internal image upload failed: {str(img_err)}")
+        
+        # Convert comma text to list
+        tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+        
+        #Insert blog into blogs table
+        supabase.table("blogs").insert({
+            "title": title,
+            "content": content,
+            "thumbnail": image_url,
+            "internal_urls": internal_urls,
+            "created_by": user.user.id,
+            "author": author,
+            "tags": tags_list,
+            "category": category
+        }).execute()
+        
+        #Return success message
+        return {"message": "Blog created successfully"}
     
-    # Convert comma text to list
-    tags_list = tags.split(",")
-    #Insert blog into blogs table
-    supabase.table("blogs").insert({
-        "title": title,
-        "content": content,
-        "thumbnail": image_url,
-        "internal_urls": internal_urls,
-        "created_by": user.user.id,
-        "author": author,
-        "tags": tags_list,
-        "category": category
-    }).execute()
-    #Return success message
-    return {"message": "Blog created successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Create blog error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to create blog: {str(e)}")
 
 #Get one blog api
 @blog_router.get("/{blog_id}")
