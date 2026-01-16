@@ -94,7 +94,6 @@ def update_blog(blog_id: str, blog: dict, user=Depends(get_current_user)):
         "content": blog["content"],
         "thumbnail": blog["image_url"],
         "internal_urls": blog["internal_urls"],
-        "created_by": blog["user.user.id"],
         "author": blog["author"],
         "tags": blog["tags_list"],
         "category": blog["category"]
