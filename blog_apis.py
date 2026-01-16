@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from auth import get_current_user, check_admin_or_subadmin
 from cloudinary_utils import upload_image
 from fastapi import UploadFile, File, Form, Depends
-from typing import Optional
+from typing import List, Optional
 
 load_dotenv()
 #Create router for blogs
@@ -27,13 +27,15 @@ def create_blog(title:str = Form(...),#Parameters that passes to supabase table
                 author:str = Form(...),
                 tags:str = Form(...),
                 category: str = Form(...),
-                internal_images: Optional[list[UploadFile]]= File(None),
-                image:UploadFile = File(...), user=Depends(get_current_user)):
+                internal_images: Optional[List[UploadFile]]= File(None),
+                image: Optional[UploadFile] = File(None), user=Depends(get_current_user)):
 
     #Role check
     check_admin_or_subadmin(user)
     #upload image to cloudinary
-    image_url = upload_image(image.file)
+    image_url = None
+    if image:
+        image_url = upload_image(image.file)
     #Store internal image urls
     internal_urls = []
     if internal_images:

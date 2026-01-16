@@ -7,13 +7,15 @@ import os
 from dotenv import load_dotenv
 from blog_apis import blog_router#blogs routes import
 from jobs import jobs_router#jobs routes import
+from automated_email import email_router#emails routes import
 from auth import get_current_user, check_admin_or_subadmin
 import time
 
 app = FastAPI()
-
+#Cors for giving access to frontend access
 origins = [
-    "http://localhost",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "http://localhost:3000",
 ]
 app.add_middleware(
@@ -29,6 +31,7 @@ load_dotenv()
 #Get blog routes
 app.include_router(blog_router)
 app.include_router(jobs_router)
+app.include_router(email_router)
 #Security 
 security = HTTPBearer()
 

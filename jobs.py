@@ -27,7 +27,7 @@ def create_job(job: dict, user=Depends(get_current_user)):
 
     response = supabase.table("jobs").insert({
         "title": job["title"],  # job title
-        "role_description": job["role_description"],  # job summary
+        "Department": job["role_description"],  # job summary
         "responsibilities": job.get("responsibilities"),  # optional
         "requirements": job.get("requirements"),  # optional
         "salary_min": job.get("salary_min"),  # optional
@@ -35,7 +35,7 @@ def create_job(job: dict, user=Depends(get_current_user)):
         "location": job.get("location"),  # optional
         "status": "draft"  # default state
     }).execute()
-    
+
     return response.data
 
 #Get one api
