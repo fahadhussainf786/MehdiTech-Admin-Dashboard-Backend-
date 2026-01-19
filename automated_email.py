@@ -26,18 +26,25 @@ supabase = create_client(
 app =FastAPI()
 #Create send email function
 def send_email(to_email, subject, body):
-    print("smtpemail",smtp_email,smtp_password)
-    msg =MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = smtp_email
-    msg["To"] = to_email
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
-        print("debug 1")
-        server.starttls()
-        print("debug 2")
-        server.login(smtp_email, smtp_password)
-        print("debug 3")
-        server.sendmail(smtp_email, to_email, msg.as_string())
+    try:
+        print("smtpemail", smtp_email, smtp_password)
+        msg = MIMEText(body)
+        msg["Subject"] = subject
+        msg["From"] = smtp_email
+        msg["To"] = to_email
+        
+        print("debug 1 - creating SMTP connection")
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            print("debug 2 - SMTP connection created, starting TLS")
+            server.starttls()
+            print("debug 3 - TLS started, logging in")
+            server.login(smtp_email, smtp_password)
+            print("debug 4 - login successful, sending email")
+            server.sendmail(smtp_email, to_email, msg.as_string())
+            print("debug 5 - email sent successfully")
+    except Exception as e:
+        print(f"ERROR in send_email: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Email sending failed: {str(e)}")
 
 #Automated email sending
 @email_router.patch("/applications/{app_id}/status")
