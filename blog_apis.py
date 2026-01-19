@@ -23,13 +23,16 @@ security = HTTPBearer()
 
 #Make api for uploading image
 @blog_router.post("/uploadimage")
-def upload_image(image_file):
-    response = cloudinary.uploader.upload(image_file)
-    return response.get("secure_url")
+async def upload_image_endpoint(image_file: UploadFile = File(None)):
+    if not image_file:
+        raise HTTPException(status_code=400, detail="No file provided")
+    file_content = await image_file.read()
+    response = cloudinary.uploader.upload(file_content)
+    return {"url" :response.get("secure_url")}
 
 #create_blog api
 @blog_router.post("/")
-def create_blog(title:str = Form(...),#Parameters that passes to supabase table
+async def create_blog(title:str = Form(...),#Parameters that passes to supabase table
                 content:str = Form(...),
                 author:str = Form(...),
                 tags:str = Form(...),
@@ -41,7 +44,8 @@ def create_blog(title:str = Form(...),#Parameters that passes to supabase table
         image_url = None
         if image:
             try:
-                image_url = upload_image(image.file)
+                file_content = await image.read()
+                image_url = upload_image(file_content)
             except Exception as img_error:
                 raise HTTPException(
                     status_code= 400,
@@ -52,7 +56,8 @@ def create_blog(title:str = Form(...),#Parameters that passes to supabase table
         if internal_images:
             for img in internal_images:
                 try:
-                    url = upload_image(img.file)
+                    file_content = await img.read()
+                    url = upload_image(file_content)
                     internal_urls.append(url)
                 except Exception as img_error:
                     raise HTTPException(

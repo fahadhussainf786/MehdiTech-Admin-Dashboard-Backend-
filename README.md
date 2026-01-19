@@ -220,8 +220,9 @@ Used for all database operations and user authentication.
 **POST /blogs/uploadimage**
 - Helper endpoint for uploading single images
 - Form Data: `image_file` (file)
-- Response: `"https://cloudinary-secure-url.jpg"`
-- Used internally by create_blog
+- Response: `{ "url": "https://cloudinary-secure-url.jpg" }`
+- Returns JSON object with `url` field containing the secure Cloudinary URL
+- Status Codes: 200 (success), 400 (no file provided or upload failed)
 
 **POST /blogs/**
 - Create new blog post (Admin/Subadmin only)
@@ -237,11 +238,12 @@ Used for all database operations and user authentication.
   - `internal_images` (file[], optional) — Multiple images for blog content
 - Response (success): `{ "message": "Blog created successfully" }`
 - Error Handling:
-  - 400: Thumbnail upload failed / Internal image upload failed / DB insert failed
+  - 400: Thumbnail upload failed / Internal image upload failed / DB insert failed / No file provided
   - 401: Invalid/missing token
   - 403: User is not admin/subadmin
   - 500: Unexpected server error
 - Database: Inserts record into `blogs` table with uploaded URLs and user ID
+- Implementation: Async function that awaits file reads before uploading to Cloudinary
 
 **GET /blogs/**
 - Retrieve all blogs (no authentication required)
@@ -302,7 +304,7 @@ Used for all database operations and user authentication.
 - Create new job posting (Admin/Subadmin only)
 - Authorization: `Authorization: Bearer {access_token}`
 - Content-Type: `application/json`
-- Request Body:
+- Request Body (field names in request):
   ```json
   {
     "title": "Senior Full Stack Developer",
@@ -314,14 +316,16 @@ Used for all database operations and user authentication.
     "location": "Remote"
   }
   ```
-- Response (success): `[{ id, title, department, ... }]`
+- Database mapping: `emp_type` → `employment_type`, `job_des` → `job_description`
+- Response (success): `[{ id, title, department, employment_type, ... }]`
 - Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 500 (server error)
 - Database: Inserts record into `jobs` table with status set to "live"
 
 **GET /jobs/jobs**
 - Retrieve all job postings (no authentication required)
-- Response: `[{ id, title, department, emp_type, status, ... }, ...]`
+- Response: `[{ id, title, department, employment_type, status, ... }, ...]`
 - Status Codes: 200 (success), 500 (server error)
+- Note: Field name is `employment_type`, not `emp_type` in response
 
 **GET /jobs/jobs/{job_id}**
 - Retrieve single job by ID (no authentication required)
@@ -332,9 +336,18 @@ Used for all database operations and user authentication.
 - Update job posting (Admin/Subadmin only)
 - Authorization: `Authorization: Bearer {access_token}`
 - Content-Type: `application/json`
-- Request Body: Updated job fields (title, department, emp_type, job_des, etc.)
+- Request Body: Updated job fields (use request field names: `emp_type`, `job_des`, not database names)
+  ```json
+  {
+    "title": "Updated Title",
+    "emp_type": "Full-time",
+    "job_des": "Updated description...",
+    "salary_range": "Updated range"
+  }
+  ```
 - Response (success): Updated job record
 - Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 404 (job not found), 500 (server error)
+- Implementation: Direct passthrough to Supabase (field names must match database columns)
 
 **PATCH /jobs/{job_id}/close**
 - Mark job as closed (Admin/Subadmin only)
@@ -597,14 +610,16 @@ The backend uses a layered error handling approach:
    - 404 for missing resources
 
 2. **Preserved Errors** — HTTPException status codes are re-raised as-is
-   - Maintains proper status codes from role checks
-   - Example: `check_admin_or_subadmin` raises 403, which is re-raised
+   - Pattern: `except HTTPException: raise` at top level
 
 3. **Unexpected Errors** — Converted to 500 with error detail
    - Outer try/except catches unexpected exceptions
    - Returns 500 status with error message
 
 4. **Global Handler** — Catches any unhandled exceptions
+   - Ensures CORS headers are included in error responses
+   - Prevents browser from blocking error responses
+   - Located in `main.py` as `global_exception_handler`tions
    - Ensures CORS headers are included in error responses
    - Prevents browser from blocking error responses
 
@@ -638,12 +653,16 @@ POST /blogs/
 ### File Upload Returns 400 Error
 
 **Causes:**
-- Frontend setting `Content-Type: multipart/form-data` manually (incorrect)
-- File upload parameter name mismatch (should be `image` for thumbnail, `internal_images` for blog images)
-- Cloudinary credentials invalid or expired
+- Sending UploadFile object instead of bytes to Cloudinary
+- Endpoint function not properly awaiting `file.read()`
 
 **Solution:**
 1. Use browser's FormData API or equivalent (let it set Content-Type automatically)
+2. Verify field names match endpoint parameters in `blog_apis.py`
+3. Check `.env` Cloudinary credentials match your Cloudinary account
+4. Check error message returned from API for specific Cloudinary error
+5. Ensure blog endpoints use `async def` and `await file.read()` to get bytes
+6. Pass bytes (from `await file.read()`) to `upload_image()`, not file objectsutomatically)
 2. Verify field names match endpoint parameters in `blog_apis.py`
 3. Check `.env` Cloudinary credentials match your Cloudinary account
 4. Check error message returned from API for specific Cloudinary error
@@ -718,6 +737,69 @@ POST /blogs/
 - Render
 - Fly.io
 - AWS EC2 / Elastic Beanstalk
+
+---
+
+## Implementation Notes & Best Practices
+
+### Async/Await for File Uploads
+
+**Important:** Blog endpoints use async file processing:
+- Endpoint functions are declared `async def`
+- File reads use `await file.read()` to get bytes
+- Pass bytes to `upload_image()`, not UploadFile objects
+- Example:
+  ```python
+  @app.post("/endpoint")
+  async def endpoint(file: UploadFile = File(...)):
+      file_content = await file.read()  # Get bytes
+      url = upload_image(file_content)  # Pass bytes
+  ```
+
+### Error Response Patterns
+
+**Pattern 1: Re-raise HTTPException**
+```python
+try:
+    check_admin_or_subadmin(user)  # May raise 403
+    # ... operation ...
+except HTTPException:
+    raise  # Preserves status code
+except Exception as e:
+    raise HTTPException(status_code=500, detail=str(e))
+```
+
+**Pattern 2: Upload with specific error message**
+```python
+try:
+    content = await file.read()
+    url = upload_image(content)
+except Exception as img_error:
+    raise HTTPException(
+        status_code=400,
+        detail=f"Upload failed: {str(img_error)}"
+    )
+```
+
+### Database Operations
+
+**Supabase Query Patterns:**
+- Select: `supabase.table("table").select("*").execute()`
+- Filter: `.eq("column", value)`
+- Single record: `.single().execute()`
+- Insert: `.insert({...}).execute()`
+- Update: `.update({...}).eq("id", id).execute()`
+- Delete: `.delete().eq("id", id).execute()`
+
+### Authentication Flow
+
+1. User calls `/login` → Returns `access_token`
+2. Frontend stores token
+3. Frontend includes `Authorization: Bearer {token}` in requests
+4. Backend uses `Depends(get_current_user)` to verify token
+5. Token verified with `supabase.auth.get_user(token)`
+6. If token invalid, returns 401
+7. If authorization needed, call `check_admin_or_subadmin(user)` (returns 403 if denied)
 
 ---
 
