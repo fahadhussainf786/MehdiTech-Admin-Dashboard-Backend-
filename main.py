@@ -113,6 +113,7 @@ def login(data: LoginRequest):
 #admin api call after logged in
 @app.get("/admin") #first get get_current_user to verify token
 def admin_dashboard(user=Depends(get_current_user)):
+ 
     #Fetch and check user role from user_roles table
     role_data = supabase.table("user_roles").select("role").eq("user_id", user.user.id).execute()
 
@@ -121,7 +122,6 @@ def admin_dashboard(user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Access for Admins only")
     
     return {"message": "Welcome to the admin dashboard"}
-
 # #Get user profile
 # @app.get("/profile")
 # def get_profile(user=Depends(get_current_user)):

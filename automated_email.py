@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer
 from supabase import create_client
 import os
@@ -8,13 +8,13 @@ import smtplib
 from fastapi import Body
 from email.mime.text import MIMEText
 
+load_dotenv()
+
 #smtp server configuration
 smtp_host = "smtp.gmail.com"
 smtp_port = 587
 smtp_email = os.getenv("SMTP_EMAIL")
 smtp_password = os.getenv("SMTP_PASSWORD")
-
-load_dotenv()
 #Routing for email operations
 email_router = APIRouter(prefix="/emails", tags=["emails"])
 
@@ -37,26 +37,28 @@ def send_email(to_email, subject, body):
 
 #Automated email sending
 @email_router.patch("/applications/{app_id}/status")
-def update_application_status(app_id, data: dict= Body(...)):
-     
-     check_admin_or_subadmin()
-     #Get the data from parameter
-     status = data["status"]
-     #updating the application status and sending the email
-     supabase.table("applications").update({"status":status}).eq("id", app_id).execute()
-     #Get user_email and verify application data to send email
-     app_data = supabase.table("applications").select("user_email").eq("id", app_id ).single().execute()
-     #Get email template data
-     template = supabase.table("email_templates").select("subject", "body").eq("status", status).single().execute()
-     #Send_email function call to send email
-     send_email(
-         app_data.data["user_email"],
-         template.data["subject"],
-         template.data["body"]
-     )
-
-     return {"message": "status updated and email sent"}
-     
-     
+def update_application_status(app_id, data: dict = Body(...), user=Depends(get_current_user)):
+    try:
+        check_admin_or_subadmin(user)
+        
+        status = data["status"]
+        
+        supabase.table("applications").update({"status": status}).eq("id", app_id).execute()
+        
+        app_data = supabase.table("applications").select("user_email").eq("id", app_id).single().execute()
+        
+        template = supabase.table("email_templates").select("subject", "body").eq("status", status).single().execute()
+        
+        send_email(
+            app_data.data["user_email"],
+            template.data["subject"],
+            template.data["body"]
+        )
+        
+        return {"message": "status updated and email sent"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating application status: {str(e)}")
 
      
