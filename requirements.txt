@@ -9,4 +9,3 @@ pydantic-core
 email-validator
 sendgrid
 python-http-client
-smtplib
