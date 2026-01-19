@@ -39,9 +39,10 @@ def send_email(to_email, subject, body):
 @email_router.patch("/applications/{app_id}/status")
 def update_application_status(app_id, data: dict= Body(...)):
      
+     check_admin_or_subadmin()
      #Get the data from parameter
      status = data["status"]
-#we are updating the application status and sending the email
+     #updating the application status and sending the email
      supabase.table("applications").update({"status":status}).eq("id", app_id).execute()
      #Get user_email and verify application data to send email
      app_data = supabase.table("applications").select("user_email").eq("id", app_id ).single().execute()

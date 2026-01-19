@@ -4,6 +4,7 @@ from supabase import create_client
 import os
 from dotenv import load_dotenv
 from auth import get_current_user, check_admin_or_subadmin
+import cloudinary, cloudinary.uploader
 from cloudinary_utils import upload_image
 from fastapi import UploadFile, File, Form, Depends
 from typing import List, Optional
@@ -20,10 +21,11 @@ supabase = create_client(
 #Setup bearer authentication
 security = HTTPBearer()
 
-# Handle OPTIONS for CORS preflight
-@blog_router.options("/")
-def options_handler():
-    return {}
+#Make api for uploading image
+@blog_router.post("/uploadimage")
+def upload_image(image_file):
+    response = cloudinary.uploader.upload(image_file)
+    return response.get("secure_url")
 
 #create_blog api
 @blog_router.post("/")
@@ -34,82 +36,115 @@ def create_blog(title:str = Form(...),#Parameters that passes to supabase table
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
                 image: Optional[UploadFile] = File(None), user=Depends(get_current_user)):
-
-    #Role check
-    check_admin_or_subadmin(user)
-    #upload image to cloudinary
-    image_url = None
-    if image:
-        image_url = upload_image(image.file)
-    #Store internal image urls
-    internal_urls = []
-    if internal_images:
-        for img in internal_images:
-            url = upload_image(img.file)
-            internal_urls.append(url)
-    
-    # Convert comma text to list
-    tags_list = tags.split(",")
-    #Insert blog into blogs table
-    supabase.table("blogs").insert({
-        "title": title,
-        "content": content,
-        "thumbnail": image_url,
-        "internal_urls": internal_urls,
-        "created_by": user.user.id,
-        "author": author,
-        "tags": tags_list,
-        "category": category
-    }).execute()
-    #Return success message
-    return {"message": "Blog created successfully"}
+    try:
+        check_admin_or_subadmin(user)
+        image_url = None
+        if image:
+            try:
+                image_url = upload_image(image.file)
+            except Exception as img_error:
+                raise HTTPException(
+                    status_code= 400,
+                    detail=f"Thumbnail image not found: {str(img_error)}"
+                )
+        #Store internal image urls
+        internal_urls = []
+        if internal_images:
+            for img in internal_images:
+                try:
+                    url = upload_image(img.file)
+                    internal_urls.append(url)
+                except Exception as img_error:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Internal image upload failed: {str(img_error)}"
+                    )
+        # Convert comma text to list
+        tags_list = tags.split(",")
+        try:
+            supabase.table("blogs").insert({
+                "title": title,
+                "content": content,
+                "thumbnail": image_url,
+                "internal_urls": internal_urls,
+                "created_by": user.user.id,
+                "author": author,
+                "tags": tags_list,
+                "category": category
+            }).execute()
+        except Exception as db_error:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to save blog: {str(db_error)}"
+            )
+        #Return success message
+        return {"message": "Blog created successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 #Get one blog api
 @blog_router.get("/{blog_id}")
 def get_blog(blog_id: str):
-    #Fetch blog from blogs table
-    blog = supabase.table("blogs").select("*").eq("id", blog_id).execute()
-    
-    if not blog.data:
-        raise HTTPException(status_code=404, detail="Blog not found")
-    return {"blog": blog.data[0]}
+    try:
+        #Fetch blog from blogs table
+        blog = supabase.table("blogs").select("*").eq("id", blog_id).execute()
+        
+        if not blog.data:
+            raise HTTPException(status_code=404, detail="Blog not found")
+        return {"blog": blog.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching blog: {str(e)}")
 
 #Get all blogs api
 @blog_router.get("/")
 def get_blogs():
-
-    #Fetch all blogs from blogs table
-    blogs = supabase.table("blogs").select("*").execute()
-
-    return {"blogs": blogs.data}
+    try:
+        #Fetch all blogs from blogs table
+        blogs = supabase.table("blogs").select("*").execute()
+        return {"blogs": blogs.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching blogs: {str(e)}")
 
 #Update blog api
 @blog_router.put("/{blog_id}")
 def update_blog(blog_id: str, blog: dict, user=Depends(get_current_user)):
-    #check admin or subadmin
-    check_admin_or_subadmin(user)
-    #update blog in blogs table
-    supabase.table("blogs").update({
-        "title": blog["title"],
-        "content": blog["content"],
-        "thumbnail": blog["image_url"],
-        "internal_urls": blog["internal_urls"],
-        "author": blog["author"],
-        "tags": blog["tags_list"],
-        "category": blog["category"]
-    }).eq("id", blog_id).execute()
+    try:
+        #check admin or subadmin
+        check_admin_or_subadmin(user)
+        #update blog in blogs table
+        supabase.table("blogs").update({
+            "title": blog["title"],
+            "content": blog["content"],
+            "thumbnail": blog["image_url"],
+            "internal_urls": blog["internal_urls"],
+            "author": blog["author"],
+            "tags": blog["tags_list"],
+            "category": blog["category"]
+        }).eq("id", blog_id).execute()
 
-    return {"message": "Blog updated successfully"}
+        return {"message": "Blog updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating blog: {str(e)}")
 
 #Delete blog api
 @blog_router.delete("/{blog_id}")
 def delete_blog(blog_id: str, user=Depends(get_current_user)):
-    #check admin or subadmin
-    check_admin_or_subadmin(user)
-    #delete blog from blogs table
-    supabase.table("blogs").delete().eq("id", blog_id).execute()
-
-    return {"message": "Blog deleted successfully"}
+    try:
+        #check admin or subadmin
+        check_admin_or_subadmin(user)
+        #delete blog from blogs table
+        supabase.table("blogs").delete().eq("id", blog_id).execute()
+        return {"message": "Blog deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting blog: {str(e)}")
 
 
 

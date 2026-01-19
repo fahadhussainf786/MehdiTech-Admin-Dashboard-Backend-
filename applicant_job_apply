@@ -1,0 +1,7 @@
+from fastapi import FastAPI,APIRouter, HTTPException
+from supabase import create_client
+import os
+
+jobapply_router = APIRouter(prefix="/jobapply", tags=["jobapply"])
+
+@jobapply_router.post(/applications)
