@@ -32,8 +32,11 @@ def send_email(to_email, subject, body):
     msg["From"] = smtp_email
     msg["To"] = to_email
     with smtplib.SMTP(smtp_host, smtp_port) as server:
+        print("debug 1")
         server.starttls()
+        print("debug 2")
         server.login(smtp_email, smtp_password)
+        print("debug 3")
         server.sendmail(smtp_email, to_email, msg.as_string())
 
 #Automated email sending
