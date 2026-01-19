@@ -26,6 +26,7 @@ supabase = create_client(
 app =FastAPI()
 #Create send email function
 def send_email(to_email, subject, body):
+    print("smtpemail",smtp_email,smtp_password)
     msg =MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = smtp_email
