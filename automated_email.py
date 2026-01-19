@@ -39,21 +39,23 @@ def send_email(to_email, subject, body):
 @email_router.patch("/applications/{app_id}/status")
 def update_application_status(app_id, data: dict = Body(...), user=Depends(get_current_user)):
     try:
+        print("start")
         check_admin_or_subadmin(user)
-        
+        print("admin checked")
         status = data["status"]
-        
+        print("status saved")
         supabase.table("applications").update({"status": status}).eq("id", app_id).execute()
-        
+        print("updating the status")
         app_data = supabase.table("applications").select("user_email").eq("id", app_id).single().execute()
-        
+        print("getting useremail")
         template = supabase.table("email_templates").select("subject", "body").eq("status", status).single().execute()
-        
+        print("getting the template")
         send_email(
             app_data.data["user_email"],
             template.data["subject"],
             template.data["body"]
         )
+        print("After getting template send email", send_email)
         
         return {"message": "status updated and email sent"}
     except HTTPException:
