@@ -5,7 +5,6 @@ import os
 from dotenv import load_dotenv
 from auth import get_current_user, check_admin_or_subadmin
 import smtplib
-import asyncio
 from fastapi import Body
 from email.mime.text import MIMEText
 
@@ -13,7 +12,7 @@ load_dotenv()
 
 #smtp server configuration
 smtp_host = "smtp.gmail.com"
-smtp_port = 587
+smtp_port = 465
 smtp_email = os.getenv("SMTP_EMAIL")
 smtp_password = os.getenv("SMTP_PASSWORD")
 #Routing for email operations
