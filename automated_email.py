@@ -33,7 +33,7 @@ def send_email(to_email, subject, body):
         msg["From"] = smtp_email
         msg["To"] = to_email
         
-        print("debug 1 - creating SMTP connection")
+        print("debug 1 - creating SMTP connection with 465 port")
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             print("debug 2 - SMTP connection created")
             server.login(smtp_email, smtp_password)
