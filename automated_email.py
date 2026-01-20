@@ -34,10 +34,8 @@ def send_email(to_email, subject, body):
         msg["To"] = to_email
         
         print("debug 1 - creating SMTP connection")
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            print("debug 2 - SMTP connection created, starting TLS")
-            server.starttls()
-            print("debug 3 - TLS started, logging in")
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            print("debug 2 - SMTP connection created")
             server.login(smtp_email, smtp_password)
             print("debug 4 - login successful, sending email")
             server.sendmail(smtp_email, to_email, msg.as_string())
