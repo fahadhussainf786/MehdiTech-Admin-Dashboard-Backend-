@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from auth import get_current_user, check_admin_or_subadmin
 import smtplib
+import asyncio
 from fastapi import Body
 from email.mime.text import MIMEText
 
@@ -24,49 +25,44 @@ supabase = create_client(
 )
 
 app =FastAPI()
-#Create send email function
-def send_email(to_email, subject, body):
-    try:
-        print("smtpemail", smtp_email, smtp_password)
+#Create async send email function
+async def send_email(to_email, subject, body):
+    """
+    Send email asynchronously using asyncio.to_thread() for SMTP operations.
+    Runs blocking SMTP code in a thread pool to avoid blocking the event loop.
+    """
+    def _send_smtp():
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"] = smtp_email
         msg["To"] = to_email
         
-        print("debug 1 - creating SMTP connection")
         with smtplib.SMTP(smtp_host, smtp_port) as server:
-            print("debug 2 - SMTP connection created, starting TLS")
             server.starttls()
-            print("debug 3 - TLS started, logging in")
             server.login(smtp_email, smtp_password)
-            print("debug 4 - login successful, sending email")
             server.sendmail(smtp_email, to_email, msg.as_string())
-            print("debug 5 - email sent successfully")
+    
+    try:
+        await asyncio.to_thread(_send_smtp)
     except Exception as e:
-        print(f"ERROR in send_email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Email sending failed: {str(e)}")
 
 #Automated email sending
 @email_router.patch("/applications/{app_id}/status")
-def update_application_status(app_id, data: dict = Body(...), user=Depends(get_current_user)):
+async def update_application_status(app_id, data: dict = Body(...), user=Depends(get_current_user)):
     try:
-        print("start")
         check_admin_or_subadmin(user)
-        print("admin checked")
         status = data["status"]
-        print("status saved")
+        
         supabase.table("applications").update({"status": status}).eq("id", app_id).execute()
-        print("updating the status")
         app_data = supabase.table("applications").select("user_email").eq("id", app_id).single().execute()
-        print("getting useremail")
         template = supabase.table("email_templates").select("subject", "body").eq("status", status).single().execute()
-        print("getting the template")
-        send_email(
+        
+        await send_email(
             app_data.data["user_email"],
             template.data["subject"],
             template.data["body"]
         )
-        print("After getting template send email", send_email)
         
         return {"message": "status updated and email sent"}
     except HTTPException:
