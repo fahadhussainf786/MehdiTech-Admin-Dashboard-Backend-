@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form
 from supabase import create_client
 import os
+import uuid
 from dotenv import load_dotenv
 from auth import get_current_user, check_admin_or_subadmin
 from cloudinary_utils import upload_image
@@ -15,39 +16,49 @@ supabase = create_client(
 )
 
 # Apply for a job
-@jobapply_router.post("/job_apply")
+@jobapply_router.post("/job_apply/{job_id}")
 async def apply_job(
+    job_id: str,
     user_email: str = Form(...),
-    user_name: str = Form(...),
-    resume: UploadFile = File(None)
+    name: str = Form(...),
+    phone_number: str = Form(None),
+    resume: UploadFile = File(None), user=Depends(get_current_user)
 ):
     try:
-        # # Check if job exists
-        # job_check = supabase.table("jobs").select("id").eq("id", job_id).single().execute()
-        # if not job_check.data:
-        #     raise HTTPException(status_code=404, detail="Job not found")
+       
+        # Check if job exists
+        job_check = supabase.table("jobs").select("id").eq("id", job_id).single().execute()
+        if not job_check.data:
+            raise HTTPException(status_code=404, detail="Job not found")
         
-        # # Check if already applied
-        # existing = supabase.table("applications").select("id").eq("job_id", job_id).eq("user_email", user_email).execute()
-        # if existing.data:
-        #     raise HTTPException(status_code=400, detail="You have already applied for this job")
+        # Check if already applied
+        existing = supabase.table("applications").select("id").eq("job_id", job_id).eq("user_email", user_email).execute()
+        if existing.data:
+            raise HTTPException(status_code=400, detail="You have already applied for this job")
         
-        # Upload resume if provided
-        resume_url = None
+        #resume optional
+        resume_url = None #default none
         if resume:
-            try:
-                file_content = await resume.read()
-                
-            except Exception as resume_error:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Resume upload failed: {str(resume_error)}"
-                )
+          file_name = f"{uuid.uuid4()}.pdf"
+
+        # we have to store resume in supabase storage
+          supabase.storage.from_("resumes").upload(
+            file_name,
+            await resume.read(),
+            {"content-type": resume.content_type}
+        )
+        #Now get the resume url
+          resume_url = supabase.storage.from_("resumes").get_public_url(file_name)
+
         # Insert application
         response = supabase.table("applications").insert({
+            "job_id": job_id,
+            "user_id": user.user.id,
             "user_email": user_email,
-            "user_name": user_name,
+            "applicant_name": name,
             "resume_url": resume_url,
+            "phone_number": phone_number,
+            "status": "Applied"
         }).execute()
         
         return {
@@ -114,13 +125,8 @@ def get_my_applications(user_email: str):
 
 # Update application status (admin only)
 @jobapply_router.patch("/applications/{app_id}/status")
-def update_application_status(app_id: str, status: str, user=Depends(get_current_user)):
-    """
-    Update application status (Admin/Subadmin only).
-    Status: pending, approved, rejected, under_review
-    """
+def update_application_status(app_id: str, status: str):
     try:
-
         response = supabase.table("applications").update({
             "status": status,
             }).eq("id", app_id).execute()
@@ -129,9 +135,6 @@ def update_application_status(app_id: str, status: str, user=Depends(get_current
             raise HTTPException(status_code=404, detail="Application not found")
         
         return {"message": "Application status updated successfully"}
-    
-        response = supabase.table("applications").update()
-    
     except HTTPException:
         raise
     except Exception as e:
