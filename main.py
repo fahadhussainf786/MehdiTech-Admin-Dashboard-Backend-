@@ -55,6 +55,7 @@ load_dotenv()
 app.include_router(blog_router)
 app.include_router(jobs_router)
 app.include_router(email_router)
+app.include_router(jobapply_router)
 #Security 
 security = HTTPBearer()
 
