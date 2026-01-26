@@ -6,9 +6,10 @@ from supabase import create_client
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
-from blog_apis import blog_router#blogs routes import
-from jobs import jobs_router#jobs routes import
-from automated_email import email_router#emails routes import
+from blog_apis import blog_router#Import routers
+from jobs import jobs_router
+from automated_email import email_router
+from applicant_job_apply import jobapply_router
 from auth import get_current_user, check_admin_or_subadmin
 import time
 import traceback
@@ -113,7 +114,7 @@ def login(data: LoginRequest):
 #admin api call after logged in
 @app.get("/admin") #first get get_current_user to verify token
 def admin_dashboard(user=Depends(get_current_user)):
- 
+ try:
     #Fetch and check user role from user_roles table
     role_data = supabase.table("user_roles").select("role").eq("user_id", user.user.id).execute()
 
@@ -122,6 +123,10 @@ def admin_dashboard(user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Access for Admins only")
     
     return {"message": "Welcome to the admin dashboard"}
+ except HTTPException:
+     raise
+ except Exception as e:
+     raise HTTPException(status_code=500, detail=f"Error getting admin: {str(e)}")
 # #Get user profile
 # @app.get("/profile")
 # def get_profile(user=Depends(get_current_user)):
