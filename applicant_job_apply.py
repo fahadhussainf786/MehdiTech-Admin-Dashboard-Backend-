@@ -86,7 +86,7 @@ def get_my_applications():
     try:
         #Get applications
         response = supabase.table("applications").select(
-            "id,applicant_name,user_email, status"
+            "applicant_name,user_email,status,positions, created_at"
         ).execute()
         
         return {"applications": response.data}
@@ -95,7 +95,6 @@ def get_my_applications():
 # Get single application details
 @jobapply_router.get("/applications/{app_id}")
 def get_application(app_id: str):
-    
     try:
         application = supabase.table("applications").select(
             "id, job_id, user_email, user_name, resume_url, cover_letter, status, applied_at, jobs(title, department, salary_range)"
