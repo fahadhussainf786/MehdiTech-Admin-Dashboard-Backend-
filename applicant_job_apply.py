@@ -86,12 +86,13 @@ def get_my_applications():
     try:
         #Get applications
         response = supabase.table("applications").select(
-            "applicant_name,user_email,status,positions,phone_number, created_at"
+            "id,applicant_name,user_email,status,positions,phone_number, created_at"
         ).execute()
         
         return {"applications": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching applications: {str(e)}")
+
 # Get single application details
 @jobapply_router.get("/applications/{app_id}")
 def get_application(app_id: str):
