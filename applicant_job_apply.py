@@ -86,7 +86,7 @@ def get_my_applications():
     try:
         #Get applications
         response = supabase.table("applications").select(
-            "applicant_name,user_email,status,positions, created_at"
+            "applicant_name,user_email,status,positions,phone_number, created_at"
         ).execute()
         
         return {"applications": response.data}
