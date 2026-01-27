@@ -1,78 +1,165 @@
-# Login, Signup & Blog APIs — FastAPI Backend
+# FastAPI Backend - Login, Signup, Blog & Job Management System
 
-Comprehensive FastAPI backend providing authentication, role-based access control, blog management with image uploads to Cloudinary, job postings, and automated email notifications.
+A comprehensive FastAPI backend API providing user authentication, role-based access control, blog management with image uploads, job postings, and automated email notifications.
 
----
+## 📋 Table of Contents
 
-## Table of Contents
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Installation & Setup](#installation--setup)
+- [Environment Configuration](#environment-configuration)
+- [API Endpoints](#api-endpoints)
+- [Authentication & Authorization](#authentication--authorization)
+- [Database Schema](#database-schema)
+- [Image Upload Configuration](#image-upload-configuration)
+- [Email Configuration](#email-configuration)
+- [Usage Examples](#usage-examples)
+- [Error Handling](#error-handling)
+- [CORS Configuration](#cors-configuration)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
-1. [Project Structure](#project-structure)
-2. [Requirements & Setup](#requirements--setup)
-3. [Environment Variables](#environment-variables)
-4. [How to Run](#how-to-run)
-5. [CORS Configuration](#cors-configuration)
-6. [File Documentation](#file-documentation)
-7. [API Reference](#api-reference)
-8. [Authentication & Authorization](#authentication--authorization)
-9. [Error Handling](#error-handling)
-10. [Troubleshooting](#troubleshooting)
+## 🎯 Project Overview
 
----
+This FastAPI backend provides a complete solution for managing a content management system with the following capabilities:
 
-## Project Structure
+- **User Authentication**: Secure signup and login with JWT tokens
+- **Role-Based Access Control**: Admin, Subadmin, and User roles
+- **Blog Management**: Full CRUD operations with image uploads
+- **Job Postings**: Create, manage, and track job listings
+- **Job Applications**: User application system with resume uploads
+- **Automated Emails**: Status update notifications via SMTP
+- **Cloud Storage**: Image uploads to Cloudinary
+- **File Storage**: Resume uploads to Supabase storage
+
+## ✨ Features
+
+### 🔐 Authentication & Authorization
+- User registration and login
+- JWT token-based authentication
+- Role-based access control (Admin, Subadmin, User)
+- Protected endpoints with middleware
+
+### 📝 Blog Management
+- Create, read, update, delete blog posts
+- Image upload for thumbnails and content
+- Tag-based categorization
+- Sort blogs by creation date (latest/oldest)
+- Admin/Subadmin only editing capabilities
+
+### 💼 Job Management
+- Create and manage job postings
+- Job status tracking (live/closed)
+- Department and location categorization
+- Admin/Subadmin only management
+
+### 📋 Job Applications
+- User job application system
+- Resume upload functionality
+- Application status tracking
+- Admin application management
+
+### 📧 Automated Email System
+- Status change notifications
+- SMTP integration with Gmail
+- Template-based email content
+- Admin-triggered email sending
+
+### ☁️ Cloud Integration
+- Cloudinary for image storage
+- Supabase for database and file storage
+- Secure file upload handling
+
+## 🛠️ Tech Stack
+
+### Backend Framework
+- **FastAPI** - Modern, fast web framework for building APIs
+- **Uvicorn** - ASGI server for running the application
+
+### Database & Storage
+- **Supabase** - PostgreSQL database with authentication
+- **Cloudinary** - Cloud-based image storage and management
+
+### Authentication & Security
+- **JWT Tokens** - Secure authentication
+- **HTTP Bearer** - Token-based authorization
+- **CORS** - Cross-origin resource sharing
+
+### Email & Utilities
+- **SMTP** - Email sending via Gmail
+- **Python-dotenv** - Environment variable management
+- **Cloudinary SDK** - Image upload utilities
+
+## 📁 Project Structure
 
 ```
 login signup and blog apis/
-├── main.py                  # FastAPI app initialization, CORS, auth endpoints (signup, login, admin)
-├── blog_apis.py             # Blog router: create, read, update, delete blogs with image uploads
-├── jobs.py                  # Jobs router: create, read, update, delete job postings
-├── auth.py                  # Authentication utilities: token verification, role checks
-├── cloudinary_utils.py      # Cloudinary configuration and image upload helper
-├── automated_email.py       # Email router: send automated emails for application status updates
+├── main.py                  # FastAPI app initialization, CORS, auth endpoints
+├── auth.py                  # Authentication utilities and role checking
+├── blog_apis.py             # Blog management endpoints with image uploads
+├── jobs.py                  # Job posting management endpoints
+├── applicant_job_apply.py   # Job application system endpoints
+├── automated_email.py       # Email notification system
+├── cloudinary_utils.py      # Cloudinary configuration and utilities
 ├── requirements.txt         # Python dependencies
-├── .env                     # Environment variables (not committed to version control)
+├── .env.example            # Environment variables template
 └── README.md               # This documentation file
 ```
 
----
-
-## Requirements & Setup
+## 🚀 Installation & Setup
 
 ### Prerequisites
 - Python 3.8 or higher
 - pip package manager
-- Virtual environment (strongly recommended)
+- Virtual environment (recommended)
 
-### Installation
+### Installation Steps
 
-1. **Create and activate virtual environment:**
-   ```powershell
-   python -m venv venv
-   venv\Scripts\activate
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd "login signup and blog apis"
    ```
 
-2. **Install dependencies:**
-   ```powershell
+2. **Create virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
    pip install -r requirements.txt
    ```
 
-   Or individually:
-   ```powershell
-   pip install fastapi uvicorn supabase python-dotenv cloudinary python-multipart
+4. **Create environment file**
+   ```bash
+   cp .env.example .env
    ```
 
----
+5. **Configure environment variables** (see [Environment Configuration](#environment-configuration))
 
-## Environment Variables
+6. **Run the application**
+   ```bash
+   uvicorn main:app --reload
+   ```
 
-Create a `.env` file in the project root with the following variables (use exact names):
+## ⚙️ Environment Configuration
+
+Create a `.env` file in the project root with the following variables:
 
 ```env
 # Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# Cloudinary Configuration (note: camel-case names)
+# Cloudinary Configuration
 Cloudinary_CLOUD_NAME=your_cloud_name
 Cloudinary_API_KEY=your_api_key
 Cloudinary_API_SECRET=your_api_secret
@@ -83,732 +170,858 @@ SMTP_PASSWORD=your_app_password
 ```
 
 ### Getting Credentials
-- **Supabase**: https://supabase.com → Create project → Settings → API Keys
-- **Cloudinary**: https://cloudinary.com → Dashboard → API Keys
-- **Gmail SMTP**: Enable 2FA → Generate App Password (use app-specific password, not main Gmail password)
 
----
+#### Supabase
+1. Go to [Supabase](https://supabase.com)
+2. Create a new project
+3. Navigate to Settings → API
+4. Copy the Project URL and Service Role Key
 
-## How to Run
+#### Cloudinary
+1. Go to [Cloudinary](https://cloudinary.com)
+2. Create a free account
+3. Navigate to Dashboard → Account Details
+4. Copy Cloud Name, API Key, and API Secret
 
-Start the development server:
+#### Gmail SMTP
+1. Enable 2-Factor Authentication on your Gmail account
+2. Go to Google Account settings → Security → App passwords
+3. Generate an app password for "Mail"
+4. Use this app password (not your main Gmail password)
 
-```powershell
-uvicorn main:app --reload
+## 🌐 API Endpoints
+
+### Authentication Endpoints
+
+#### POST /signup
+Register a new user account.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
 ```
 
-**Server runs at:** `http://localhost:8000`
-**API Interactive Docs:** `http://localhost:8000/docs` (Swagger UI)
-**Alternative Docs:** `http://localhost:8000/redoc` (ReDoc)
-
----
-
-## CORS Configuration
-
-The application uses `CORSMiddleware` configured in `main.py`.
-
-**Origins List (in `main.py`):**
-```python
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "https://admin-section-mehdi-tech.vercel.app"
-]
+**Response (200):**
+```json
+{
+  "message": "User has signed up successfully"
+}
 ```
 
-**To add your frontend origin:**
-1. Add the exact frontend URL to the `origins` list in `main.py`
-2. Restart the server
-3. **Important:** Use exact URL (no trailing slash). Example: `https://example.com` not `https://example.com/`
+#### POST /login
+Authenticate user and receive JWT token.
 
-**Request Requirements for CORS:**
-- Include `Origin` header in requests (browser does this automatically)
-- For multipart file uploads: send `Content-Type: multipart/form-data` (let the HTTP client set the boundary, don't set manually)
-- For protected endpoints: include `Authorization: Bearer {access_token}` header
-
----
-
-## File Documentation
-
-### 1. **main.py** — FastAPI App & Authentication
-
-**Purpose:** Application initialization, CORS setup, and user authentication endpoints.
-
-**Key Components:**
-
-#### CORSMiddleware Configuration
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
 ```
 
-#### Global Exception Handler
-Catches all unhandled exceptions and returns CORS-compliant error responses:
-```python
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception)
+**Response (200):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "Role": "admin",
+  "email": "user@example.com"
+}
 ```
-- Returns 500 status with error detail
-- Includes `Access-Control-Allow-Origin` header to prevent CORS blocking
 
-#### Supabase Client
-```python
-supabase = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-)
+#### GET /admin
+Protected admin dashboard endpoint.
+
+**Headers:**
 ```
-Used for all database operations and user authentication.
+Authorization: Bearer {access_token}
+```
 
-#### Endpoints
+**Response (200):**
+```json
+{
+  "message": "Welcome to the admin dashboard"
+}
+```
 
-**POST /signup**
-- Create new user account in Supabase Auth
-- Request Body: `{ "email": "user@example.com", "password": "password123" }`
-- Response (success): `{ "message": "User has signed up successfully" }`
-- Status Codes: 200 (success), 400 (signup failed), 500 (server error)
+### Blog Management Endpoints
 
-**POST /login**
-- Authenticate user and return JWT token
-- Request Body: `{ "email": "user@example.com", "password": "password123" }`
-- Response (success): 
-  ```json
-  {
-    "access_token": "eyJhbGci...",
-    "token_type": "bearer",
-    "Role": "admin",
-    "email": "user@example.com"
+#### POST /blogs/uploadimage
+Upload a single image to Cloudinary.
+
+**Form Data:**
+- `image_file`: File upload
+
+**Response (200):**
+```json
+{
+  "url": "https://res.cloudinary.com/your-cloud-name/image/upload/..."
+}
+```
+
+#### POST /blogs/
+Create a new blog post (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+- `title`: Blog title
+- `content`: Blog content (HTML supported)
+- `author`: Author name
+- `tags`: Comma-separated tags
+- `category`: Blog category
+- `image`: Thumbnail image (optional)
+- `internal_images`: Internal content images (optional, multiple)
+
+**Response (200):**
+```json
+{
+  "message": "Blog created successfully"
+}
+```
+
+#### GET /blogs/
+Retrieve all blogs.
+
+**Query Parameters:**
+- `sort`: "latest" or "oldest" (optional)
+
+**Response (200):**
+```json
+{
+  "blogs": [
+    {
+      "id": "uuid",
+      "title": "Blog Title",
+      "content": "Blog content...",
+      "thumbnail": "https://...",
+      "internal_urls": ["https://..."],
+      "author": "Author Name",
+      "tags": ["tag1", "tag2"],
+      "category": "Category",
+      "created_at": "2023-01-01T00:00:00Z",
+      "created_by": "user-id"
+    }
+  ]
+}
+```
+
+#### GET /blogs/{blog_id}
+Retrieve a specific blog post.
+
+**Response (200):**
+```json
+{
+  "blog": {
+    "id": "uuid",
+    "title": "Blog Title",
+    "content": "Blog content...",
+    "thumbnail": "https://...",
+    "internal_urls": ["https://..."],
+    "author": "Author Name",
+    "tags": ["tag1", "tag2"],
+    "category": "Category",
+    "created_at": "2023-01-01T00:00:00Z",
+    "created_by": "user-id"
   }
-  ```
-- Status Codes: 200 (success), 401 (invalid credentials), 500 (server error)
-- **Note:** Role is fetched from `user_roles` table in Supabase
+}
+```
 
-**GET /admin**
-- Protected endpoint (requires valid token)
-- Authorization: `Authorization: Bearer {access_token}`
-- Response (success): `{ "message": "Welcome to the admin dashboard" }`
-- Status Codes: 200 (success), 401 (missing/invalid token), 403 (user not admin), 500 (server error)
-- **Note:** Only allows users with role 'admin'
+#### PUT /blogs/{blog_id}
+Update a blog post (Admin/Subadmin only).
 
-#### Router Includes
-- `blog_router` from `blog_apis.py` (prefix: `/blogs`)
-- `jobs_router` from `jobs.py` (prefix: `/jobs`)
-- `email_router` from `automated_email.py` (prefix: `/emails`)
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
 
----
+**Request Body:**
+```json
+{
+  "title": "Updated Title",
+  "content": "Updated content...",
+  "image_url": "https://new-thumbnail-url.jpg",
+  "internal_urls": ["url1", "url2"],
+  "author": "Updated Author",
+  "tags_list": ["tag1", "tag2"],
+  "category": "Updated Category"
+}
+```
 
-### 2. **blog_apis.py** — Blog Management
+#### DELETE /blogs/{blog_id}
+Delete a blog post (Admin/Subadmin only).
 
-**Purpose:** CRUD operations for blog posts with image upload capabilities.
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
 
-**Router:** Mounted at `/blogs`
+**Response (200):**
+```json
+{
+  "message": "Blog deleted successfully"
+}
+```
 
-**Dependencies:**
-- Supabase for database operations
-- Cloudinary for image storage
-- Authentication: `get_current_user`, `check_admin_or_subadmin`
+### Job Management Endpoints
 
-**Endpoints:**
+#### POST /jobs/
+Create a new job posting (Admin/Subadmin only).
 
-**POST /blogs/uploadimage**
-- Helper endpoint for uploading single images
-- Form Data: `image_file` (file)
-- Response: `{ "url": "https://cloudinary-secure-url.jpg" }`
-- Returns JSON object with `url` field containing the secure Cloudinary URL
-- Status Codes: 200 (success), 400 (no file provided or upload failed)
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
 
-**POST /blogs/**
-- Create new blog post (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Content-Type: `multipart/form-data`
-- Form Fields:
-  - `title` (string, required) — Blog post title
-  - `content` (string, required) — Blog content (HTML supported)
-  - `author` (string, required) — Author name
-  - `tags` (string, required) — Comma-separated tags (e.g., "python, fastapi, web")
-  - `category` (string, required) — Blog category
-  - `image` (file, optional) — Thumbnail image
-  - `internal_images` (file[], optional) — Multiple images for blog content
-- Response (success): `{ "message": "Blog created successfully" }`
-- Error Handling:
-  - 400: Thumbnail upload failed / Internal image upload failed / DB insert failed / No file provided
-  - 401: Invalid/missing token
-  - 403: User is not admin/subadmin
-  - 500: Unexpected server error
-- Database: Inserts record into `blogs` table with uploaded URLs and user ID
-- Implementation: Async function that awaits file reads before uploading to Cloudinary
+**Request Body:**
+```json
+{
+  "title": "Senior Developer",
+  "department": "Engineering",
+  "emp_type": "Full-time",
+  "job_des": "Job description...",
+  "qualifications": "Required qualifications...",
+  "salary_range": "$80,000 - $120,000",
+  "location": "Remote"
+}
+```
 
-**GET /blogs/**
-- Retrieve all blogs (no authentication required)
-- Response: `{ "blogs": [{ id, title, content, thumbnail, ... }, ...] }`
-- Status Codes: 200 (success), 500 (server error)
+**Response (200):**
+```json
+[{
+  "id": "uuid",
+  "title": "Senior Developer",
+  "department": "Engineering",
+  "employment_type": "Full-time",
+  "job_description": "Job description...",
+  "qualifications": "Required qualifications...",
+  "salary_range": "$80,000 - $120,000",
+  "location": "Remote",
+  "status": "live",
+  "created_at": "2023-01-01T00:00:00Z"
+}]
+```
 
-**GET /blogs/{blog_id}**
-- Retrieve single blog by ID (no authentication required)
-- Response (success): `{ "blog": { id, title, content, ... } }`
-- Status Codes: 200 (success), 404 (blog not found), 500 (server error)
+#### GET /jobs/jobs
+Retrieve all job postings.
 
-**PUT /blogs/{blog_id}**
-- Update blog post (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Content-Type: `application/json`
-- Request Body:
-  ```json
-  {
-    "title": "Updated Title",
-    "content": "<p>Updated content</p>",
-    "image_url": "https://new-thumbnail-url.jpg",
-    "internal_urls": ["url1", "url2"],
+**Response (200):**
+```json
+[{
+  "id": "uuid",
+  "title": "Senior Developer",
+  "department": "Engineering",
+  "employment_type": "Full-time",
+  "job_description": "Job description...",
+  "qualifications": "Required qualifications...",
+  "salary_range": "$80,000 - $120,000",
+  "location": "Remote",
+  "status": "live",
+  "created_at": "2023-01-01T00:00:00Z"
+}]
+```
+
+#### GET /jobs/jobs/{job_id}
+Retrieve a specific job posting.
+
+**Response (200):**
+```json
+[{
+  "id": "uuid",
+  "title": "Senior Developer",
+  "department": "Engineering",
+  "employment_type": "Full-time",
+  "job_description": "Job description...",
+  "qualifications": "Required qualifications...",
+  "salary_range": "$80,000 - $120,000",
+  "location": "Remote",
+  "status": "live",
+  "created_at": "2023-01-01T00:00:00Z"
+}]
+```
+
+#### PUT /jobs/{job_id}
+Update a job posting (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "title": "Updated Job Title",
+  "emp_type": "Part-time",
+  "job_des": "Updated description...",
+  "salary_range": "Updated range"
+}
+```
+
+#### PATCH /jobs/{job_id}/close
+Close a job posting (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Job closed successfully"
+}
+```
+
+#### DELETE /jobs/{job_id}
+Delete a job posting (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Job deleted successfully"
+}
+```
+
+### Job Application Endpoints
+
+#### POST /jobapply/job_apply/{job_id}
+Apply for a job position.
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+- `user_email`: Applicant email
+- `name`: Applicant name
+- `phone_number`: Phone number (optional)
+- `resume`: Resume file (optional, PDF)
+
+**Response (200):**
+```json
+{
+  "message": "Application submitted successfully",
+  "application_id": "uuid"
+}
+```
+
+#### GET /jobapply/{job_id}/applicants/count
+Get total number of applicants for a job.
+
+**Response (200):**
+```json
+{
+  "total applicants": 5
+}
+```
+
+#### GET /jobapply/my_applications
+Get all applications for the current user.
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
+
+**Query Parameters:**
+- `user_email`: User email
+
+**Response (200):**
+```json
+{
+  "applications": [
+    {
+      "id": "uuid",
+      "job_id": "job-uuid",
+      "user_email": "user@example.com",
+      "status": "Applied",
+      "applied_at": "2023-01-01T00:00:00Z",
+      "jobs": {
+        "title": "Job Title",
+        "department": "Department",
+        "salary_range": "$80,000 - $120,000"
+      }
+    }
+  ]
+}
+```
+
+#### GET /jobapply/applications/{app_id}
+Get details of a specific application.
+
+**Response (200):**
+```json
+{
+  "application": {
+    "id": "uuid",
+    "job_id": "job-uuid",
+    "user_email": "user@example.com",
+    "applicant_name": "Applicant Name",
+    "resume_url": "https://...",
+    "status": "Applied",
+    "applied_at": "2023-01-01T00:00:00Z",
+    "jobs": {
+      "title": "Job Title",
+      "department": "Department",
+      "salary_range": "$80,000 - $120,000"
+    }
+  }
+}
+```
+
+#### PATCH /jobapply/applications/{app_id}/status
+Update application status (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "status": "approved"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Application status updated successfully"
+}
+```
+
+#### DELETE /jobapply/applications/{app_id}
+Withdraw an application.
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Application withdrawn successfully"
+}
+```
+
+### Email Notification Endpoints
+
+#### PATCH /emails/applications/{app_id}/status
+Update application status and send email notification (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "status": "approved"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "status updated and email sent"
+}
+```
+
+## 🔐 Authentication & Authorization
+
+### Token-Based Authentication
+The API uses JWT tokens for authentication. After successful login, clients receive an access token that must be included in the `Authorization` header for protected endpoints.
+
+### Role-Based Access Control
+The system implements three user roles:
+
+- **Admin**: Full access to all operations
+- **Subadmin**: Access to admin-level operations (same as admin in current implementation)
+- **User**: Limited access (cannot create/update/delete content)
+
+### Protected Endpoints
+The following endpoints require admin or subadmin privileges:
+- Blog management (create, update, delete)
+- Job management (create, update, delete, close)
+- Application status updates with email notifications
+
+## 🗄️ Database Schema
+
+### Required Supabase Tables
+
+#### user_roles
+Stores user role assignments.
+```sql
+CREATE TABLE user_roles (
+  user_id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'subadmin', 'user')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### blogs
+Stores blog post information.
+```sql
+CREATE TABLE blogs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  thumbnail TEXT,
+  internal_urls TEXT[],
+  created_by UUID REFERENCES auth.users(id),
+  author VARCHAR(100) NOT NULL,
+  tags TEXT[],
+  category VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### jobs
+Stores job posting information.
+```sql
+CREATE TABLE jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  department VARCHAR(100) NOT NULL,
+  employment_type VARCHAR(50) NOT NULL,
+  job_description TEXT,
+  qualifications TEXT NOT NULL,
+  salary_range VARCHAR(100),
+  location VARCHAR(255),
+  status VARCHAR(20) DEFAULT 'live' CHECK (status IN ('live', 'closed')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### applications
+Stores job application information.
+```sql
+CREATE TABLE applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES jobs(id),
+  user_id UUID REFERENCES auth.users(id),
+  user_email VARCHAR(255) NOT NULL,
+  applicant_name VARCHAR(255) NOT NULL,
+  resume_url TEXT,
+  phone_number VARCHAR(20),
+  status VARCHAR(50) DEFAULT 'Applied',
+  applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### email_templates
+Stores email templates for different statuses.
+```sql
+CREATE TABLE email_templates (
+  status VARCHAR(50) PRIMARY KEY,
+  subject VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL
+);
+```
+
+### Supabase Storage Buckets
+
+#### resumes
+Stores uploaded resume files.
+- **Bucket Name**: `resumes`
+- **File Format**: PDF
+- **Access**: Public (for download links)
+
+## 🖼️ Image Upload Configuration
+
+### Cloudinary Setup
+Images are uploaded to Cloudinary for efficient storage and delivery.
+
+### Supported Image Operations
+- **Thumbnail Upload**: Single image for blog posts
+- **Internal Images**: Multiple images within blog content
+- **Automatic Optimization**: Cloudinary handles image optimization
+- **Secure URLs**: HTTPS delivery with CDN support
+
+### File Upload Best Practices
+1. Use `multipart/form-data` for file uploads
+2. Set appropriate file size limits on the client
+3. Validate file types before upload
+4. Handle upload errors gracefully
+
+## 📧 Email Configuration
+
+### SMTP Setup
+The email system uses Gmail's SMTP server for sending notifications.
+
+### Required Email Templates
+Create entries in the `email_templates` table for each application status:
+
+```sql
+INSERT INTO email_templates (status, subject, body) VALUES
+('approved', 'Application Approved', 'Congratulations! Your application has been approved.'),
+('rejected', 'Application Rejected', 'We regret to inform you that your application has been rejected.'),
+('pending', 'Application Received', 'Thank you for your application. We will review it shortly.'),
+('under_review', 'Application Under Review', 'Your application is currently under review.');
+```
+
+### Email Security
+- Use app-specific passwords for Gmail
+- Never commit email credentials to version control
+- Consider using environment-specific email accounts
+
+## 💡 Usage Examples
+
+### Python Client Example
+```python
+import requests
+
+# Base URL
+BASE_URL = "http://localhost:8000"
+
+# 1. User Registration
+signup_data = {
+    "email": "user@example.com",
+    "password": "password123"
+}
+response = requests.post(f"{BASE_URL}/signup", json=signup_data)
+print(response.json())
+
+# 2. User Login
+login_data = {
+    "email": "user@example.com",
+    "password": "password123"
+}
+response = requests.post(f"{BASE_URL}/login", json=login_data)
+token = response.json()["access_token"]
+headers = {"Authorization": f"Bearer {token}"}
+
+# 3. Create Blog Post
+blog_data = {
+    "title": "My First Blog Post",
+    "content": "This is the content of my blog post...",
     "author": "John Doe",
-    "tags_list": ["tag1", "tag2"],
-    "category": "Updated Category"
-  }
-  ```
-- Response (success): `{ "message": "Blog updated successfully" }`
-- Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 500 (server error)
+    "tags": "python,fastapi,web",
+    "category": "Technology"
+}
+files = {
+    "image": open("thumbnail.jpg", "rb")
+}
+response = requests.post(f"{BASE_URL}/blogs/", headers=headers, data=blog_data, files=files)
+print(response.json())
+```
 
-**DELETE /blogs/{blog_id}**
-- Delete blog post (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Response (success): `{ "message": "Blog deleted successfully" }`
-- Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 500 (server error)
+### JavaScript/Fetch Example
+```javascript
+const BASE_URL = "http://localhost:8000";
 
-**Error Handling:**
-- Image uploads wrapped in try/except with specific error messages
-- Database insert wrapped in try/except
-- HTTPException re-raised to preserve status codes
-- Unexpected exceptions converted to 500 errors
+// 1. Login
+async function login(email, password) {
+    const response = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+    });
+    const data = await response.json();
+    return data.access_token;
+}
 
----
+// 2. Create Blog Post
+async function createBlog(token, blogData, imageFile) {
+    const formData = new FormData();
+    formData.append("title", blogData.title);
+    formData.append("content", blogData.content);
+    formData.append("author", blogData.author);
+    formData.append("tags", blogData.tags);
+    formData.append("category", blogData.category);
+    if (imageFile) {
+        formData.append("image", imageFile);
+    }
 
-### 3. **jobs.py** — Job Postings Management
+    const response = await fetch(`${BASE_URL}/blogs/`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`
+        },
+        body: formData
+    });
+    return response.json();
+}
+```
 
-**Purpose:** CRUD operations for job postings.
-
-**Router:** Mounted at `/jobs`
-
-**Dependencies:**
-- Supabase for database operations
-- Authentication: `get_current_user`, `check_admin_or_subadmin`
-
-**Endpoints:**
-
-**POST /jobs/**
-- Create new job posting (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Content-Type: `application/json`
-- Request Body (field names in request):
-  ```json
-  {
-    "title": "Senior Full Stack Developer",
-    "department": "Engineering",
-    "emp_type": "Full-time",
-    "job_des": "Job description...",
-    "qualifications": "Required qualifications...",
-    "salary_range": "$80,000 - $120,000",
-    "location": "Remote"
-  }
-  ```
-- Database mapping: `emp_type` → `employment_type`, `job_des` → `job_description`
-- Response (success): `[{ id, title, department, employment_type, ... }]`
-- Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 500 (server error)
-- Database: Inserts record into `jobs` table with status set to "live"
-
-**GET /jobs/jobs**
-- Retrieve all job postings (no authentication required)
-- Response: `[{ id, title, department, employment_type, status, ... }, ...]`
-- Status Codes: 200 (success), 500 (server error)
-- Note: Field name is `employment_type`, not `emp_type` in response
-
-**GET /jobs/jobs/{job_id}**
-- Retrieve single job by ID (no authentication required)
-- Response: `[{ id, title, department, ... }]`
-- Status Codes: 200 (success), 500 (server error)
-
-**PUT /jobs/{job_id}**
-- Update job posting (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Content-Type: `application/json`
-- Request Body: Updated job fields (use request field names: `emp_type`, `job_des`, not database names)
-  ```json
-  {
-    "title": "Updated Title",
-    "emp_type": "Full-time",
-    "job_des": "Updated description...",
-    "salary_range": "Updated range"
-  }
-  ```
-- Response (success): Updated job record
-- Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 404 (job not found), 500 (server error)
-- Implementation: Direct passthrough to Supabase (field names must match database columns)
-
-**PATCH /jobs/{job_id}/close**
-- Mark job as closed (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Response (success): `{ "message": "Job closed successfully" }`
-- Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 500 (server error)
-- Database: Updates `jobs` record with `status` = "closed"
-
-**DELETE /jobs/{job_id}**
-- Delete job posting (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Response (success): `{ "message": "Job deleted successfully" }`
-- Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 500 (server error)
-
-**Error Handling:**
-- Role checks via `check_admin_or_subadmin(user)` raise 403 HTTPException
-- HTTPException re-raised to preserve status codes
-- Unexpected exceptions converted to 500 errors with description
-
----
-
-### 4. **auth.py** — Authentication & Authorization
-
-**Purpose:** Token verification and role-based access control utilities.
-
-**Dependencies:**
-- Supabase for user verification
-- FastAPI HTTPBearer for token extraction
-
-**Key Functions:**
-
-**get_current_user(cred: HTTPAuthorizationCredentials)**
-- Extract and verify JWT token from Authorization header
-- Parameter: HTTP Bearer credentials (automatically extracted by FastAPI)
-- Returns: User object from Supabase
-- Raises: `HTTPException(401, "invalid token")` if token is invalid
-- Usage: Use as dependency in protected endpoints
-- Example:
-  ```python
-  @app.get("/protected")
-  def protected_endpoint(user=Depends(get_current_user)):
-      return {"user_id": user.user.id}
-  ```
-
-**check_admin_or_subadmin(user)**
-- Verify user has admin or subadmin role
-- Parameter: User object (from `get_current_user`)
-- Returns: Role string ("admin" or "subadmin")
-- Raises: 
-  - `HTTPException(403, "Role not found")` if user has no role in `user_roles` table
-  - `HTTPException(403, "Access forbidden: Admins and Subadmins only")` if role is neither admin nor subadmin
-- Usage: Call in protected endpoints before performing admin-only operations
-- Example:
-  ```python
-  @app.post("/admin-action")
-  def admin_action(user=Depends(get_current_user)):
-      check_admin_or_subadmin(user)  # Raises 403 if not admin/subadmin
-      # Proceed with admin operation
-  ```
-
-**Supabase Tables Required:**
-- `user_roles` — Must have columns: `user_id`, `role`
-  - Valid roles: "admin", "subadmin", "user"
-
----
-
-### 5. **cloudinary_utils.py** — Image Upload Configuration
-
-**Purpose:** Cloudinary configuration and image upload helper function.
-
-**Configuration:**
-- Uses environment variables: `Cloudinary_CLOUD_NAME`, `Cloudinary_API_KEY`, `Cloudinary_API_SECRET`
-- Initializes Cloudinary SDK on module import
-
-**Key Function:**
-
-**upload_image(image_file)**
-- Upload image file to Cloudinary
-- Parameter: `image_file` (file object from FastAPI UploadFile or file handle)
-- Returns: Secure URL string from Cloudinary
-- Raises: Exception if upload fails (e.g., invalid file, API error)
-- Example:
-  ```python
-  from cloudinary_utils import upload_image
-  url = upload_image(file_object)  # Returns "https://res.cloudinary.com/..."
-  ```
-
-**Error Handling:**
-- If Cloudinary upload fails, exception is caught by endpoint handler and returns 400 status
-- Error message includes descriptive details from Cloudinary
-
----
-
-### 6. **automated_email.py** — Automated Email Notifications
-
-**Purpose:** Send automated emails for application status updates.
-
-**Router:** Mounted at `/emails`
-
-**Dependencies:**
-- Supabase for database queries and status updates
-- SMTP (Gmail) for email sending
-- Authentication: `get_current_user`, `check_admin_or_subadmin`
-
-**Configuration:**
-- SMTP Server: `smtp.gmail.com`
-- SMTP Port: 587
-- Uses environment variables: `SMTP_EMAIL`, `SMTP_PASSWORD`
-
-**Key Function:**
-
-**send_email(to_email, subject, body)**
-- Send email via SMTP
-- Parameters:
-  - `to_email` (string) — Recipient email address
-  - `subject` (string) — Email subject line
-  - `body` (string) — Email body/content
-- No return value (sends directly via SMTP)
-- Raises: Exception if SMTP connection/sending fails
-
-**Endpoints:**
-
-**PATCH /emails/applications/{app_id}/status**
-- Update application status and send email notification (Admin/Subadmin only)
-- Authorization: `Authorization: Bearer {access_token}`
-- Content-Type: `application/json`
-- Request Body:
-  ```json
-  {
-    "status": "approved"
-  }
-  ```
-- Supported statuses: "approved", "rejected", "pending", "under_review" (or other statuses that exist in `email_templates` table)
-- Response (success): `{ "message": "status updated and email sent" }`
-- Status Codes: 200 (success), 401 (invalid token), 403 (not authorized), 500 (server error)
-
-**Database Operations:**
-1. Updates `applications` table: sets `status` field for given `app_id`
-2. Fetches recipient email from `applications` table: `user_email` field
-3. Fetches email template from `email_templates` table: matches `status` field to get `subject` and `body`
-4. Sends email with template subject and body
-
-**Supabase Tables Required:**
-- `applications` — Columns: `id`, `user_email`, `status`
-- `email_templates` — Columns: `status`, `subject`, `body`
-
-**SMTP Requirements:**
-- Gmail account with 2FA enabled
-- App-specific password generated (use this in SMTP_PASSWORD, not main Gmail password)
-
----
-
-## API Reference
+## ⚠️ Error Handling
 
 ### Error Response Format
-
-All error responses follow this format:
-
+All error responses follow this standard format:
 ```json
 {
   "detail": "Error message describing what went wrong"
 }
 ```
 
-### Status Codes Summary
+### Common Error Codes
+- **400 Bad Request**: Invalid input, file upload failed, database errors
+- **401 Unauthorized**: Missing or invalid authentication token
+- **403 Forbidden**: User role does not permit this action
+- **404 Not Found**: Requested resource does not exist
+- **500 Internal Server Error**: Unexpected server error
 
-| Code | Meaning | Common Cause |
-|------|---------|--------------|
-| 200 | OK | Successful request |
-| 400 | Bad Request | Invalid input, file upload failed, DB insert failed |
-| 401 | Unauthorized | Missing or invalid authentication token |
-| 403 | Forbidden | User role does not permit this action |
-| 404 | Not Found | Requested resource does not exist |
-| 500 | Internal Server Error | Unexpected server error |
+### Error Handling Best Practices
+1. Always check response status codes
+2. Handle specific error cases appropriately
+3. Provide user-friendly error messages
+4. Log errors for debugging purposes
+5. Implement retry logic for transient failures
 
-### Common Headers
+## 🌐 CORS Configuration
 
-**Request Headers (all protected endpoints):**
-```
-Authorization: Bearer {access_token}
-```
+### Default Origins
+The application is configured to allow requests from:
+- `http://localhost:5173`
+- `http://127.0.0.1:5173`
+- `http://localhost:3000`
+- `https://admin-section-mehdi-tech.vercel.app`
 
-**Request Headers (multipart file upload):**
-```
-Content-Type: multipart/form-data
-```
-(Browser/client sets this automatically when using FormData; do not set manually)
+### Adding New Origins
+To add a new frontend origin:
 
-**Request Headers (JSON):**
-```
-Content-Type: application/json
-```
+1. Edit the `origins` list in `main.py`
+2. Add the exact URL (no trailing slash)
+3. Restart the server
 
-**Response Headers (all endpoints):**
-```
-Content-Type: application/json
-Access-Control-Allow-Origin: {frontend_origin}
-Access-Control-Allow-Credentials: true
-```
-
----
-
-## Authentication & Authorization
-
-### Token Flow
-
-1. **User Signs Up:** POST `/signup` → Account created in Supabase Auth
-2. **User Logs In:** POST `/login` → Returns `access_token` and user role
-3. **Use Token:** Include `Authorization: Bearer {access_token}` in protected requests
-4. **Token Verification:** Server verifies token with Supabase on each protected request
-
-### Role-Based Access Control
-
-**Roles:**
-- `admin` — Full access to all operations
-- `subadmin` — Access to admin-level operations (same as admin in current implementation)
-- `user` — Limited access (cannot create/update/delete)
-
-**Protected Endpoints Requiring Admin/Subadmin:**
-- POST /blogs/ (create blog)
-- PUT /blogs/{blog_id} (update blog)
-- DELETE /blogs/{blog_id} (delete blog)
-- POST /jobs/ (create job)
-- PUT /jobs/{job_id} (update job)
-- PATCH /jobs/{job_id}/close (close job)
-- DELETE /jobs/{job_id} (delete job)
-- PATCH /emails/applications/{app_id}/status (update status & send email)
-- GET /admin (admin dashboard)
-
-**Protected Endpoints Requiring Valid Token (any role):**
-- Any endpoint that requires `Depends(get_current_user)`
-
-### User Role Management
-
-User roles are stored in the `user_roles` table in Supabase:
-
-```
-user_roles
-├── user_id (UUID, references auth.users)
-├── role (string: "admin", "subadmin", or "user")
-└── created_at (timestamp)
-```
-
-To assign roles:
-1. After user signup, manually add record to `user_roles` table
-2. Set `user_id` to the newly created user's ID (from Supabase Auth)
-3. Set `role` to desired role
-
----
-
-## Error Handling
-
-### Error Handling Strategy
-
-The backend uses a layered error handling approach:
-
-1. **Specific Errors** — Caught and converted to meaningful HTTP status codes
-   - 400 for validation, upload, and database errors
-   - 403 for authorization failures
-   - 404 for missing resources
-
-2. **Preserved Errors** — HTTPException status codes are re-raised as-is
-   - Pattern: `except HTTPException: raise` at top level
-
-3. **Unexpected Errors** — Converted to 500 with error detail
-   - Outer try/except catches unexpected exceptions
-   - Returns 500 status with error message
-
-4. **Global Handler** — Catches any unhandled exceptions
-   - Ensures CORS headers are included in error responses
-   - Prevents browser from blocking error responses
-   - Located in `main.py` as `global_exception_handler`tions
-   - Ensures CORS headers are included in error responses
-   - Prevents browser from blocking error responses
-
-### Example Error Flow (Blog Creation)
-
-```
-POST /blogs/
-  ├─ check_admin_or_subadmin(user) → 403 if not admin/subadmin (re-raised)
-  ├─ upload thumbnail image → 400 if upload fails (caught, re-raised as 400)
-  ├─ upload internal images → 400 if any upload fails (caught, re-raised as 400)
-  ├─ insert into database → 400 if DB insert fails (caught, re-raised as 400)
-  └─ unexpected error → 500 (caught by outer handler, converted to 500)
-```
-
----
-
-## Troubleshooting
-
-### CORS Error: "Access-Control-Allow-Origin missing"
-
-**Causes:**
-- Frontend origin not in `origins` list in `main.py`
-- Frontend origin includes trailing slash (must match exactly)
-- Server not restarted after adding origin
-
-**Solution:**
-1. Verify frontend origin in browser developer tools (Network tab, Request headers)
-2. Add exact origin to `origins` list in `main.py` (e.g., `https://example.com` not `https://example.com/`)
-3. Restart the server: `uvicorn main:app --reload`
-
-### File Upload Returns 400 Error
-
-**Causes:**
-- Sending UploadFile object instead of bytes to Cloudinary
-- Endpoint function not properly awaiting `file.read()`
-
-**Solution:**
-1. Use browser's FormData API or equivalent (let it set Content-Type automatically)
-2. Verify field names match endpoint parameters in `blog_apis.py`
-3. Check `.env` Cloudinary credentials match your Cloudinary account
-4. Check error message returned from API for specific Cloudinary error
-5. Ensure blog endpoints use `async def` and `await file.read()` to get bytes
-6. Pass bytes (from `await file.read()`) to `upload_image()`, not file objectsutomatically)
-2. Verify field names match endpoint parameters in `blog_apis.py`
-3. Check `.env` Cloudinary credentials match your Cloudinary account
-4. Check error message returned from API for specific Cloudinary error
-
-### Authorization Error: "invalid token" (401)
-
-**Causes:**
-- Authorization header not included
-- Token format incorrect (should be `Bearer {token}`, not just `{token}`)
-- Token expired or invalid
-
-**Solution:**
-1. Ensure header: `Authorization: Bearer {access_token}` (exact format)
-2. Use token from `/login` response
-3. Generate new token if old one expired
-
-### Authorization Error: "Access forbidden" (403)
-
-**Causes:**
-- User role is not admin or subadmin
-- User has no role assigned in `user_roles` table
-
-**Solution:**
-1. Assign admin or subadmin role to user in Supabase `user_roles` table
-2. Verify `user_id` matches authenticated user's ID
-3. Test with admin account
-
-### Email Not Sending
-
-**Causes:**
-- SMTP credentials incorrect in `.env`
-- Gmail app password not generated (using main Gmail password)
-- SMTP_PASSWORD has special characters not properly escaped
-
-**Solution:**
-1. Verify `SMTP_EMAIL` and `SMTP_PASSWORD` in `.env`
-2. For Gmail: Generate app-specific password (https://myaccount.google.com/apppasswords)
-3. Use app password in `SMTP_PASSWORD`, not main Gmail password
-4. Test SMTP connection independently if needed
-
-### Database Errors (404, Failed to insert)
-
-**Causes:**
-- Supabase table doesn't exist
-- Required columns missing from table
-- Foreign key constraints not met
-- Row doesn't exist for update/delete
-
-**Solution:**
-1. Verify Supabase tables exist and have required columns
-2. Check Supabase documentation for table schemas
-3. Verify required data exists before trying to update/delete
-4. Check error message returned from API for specific database error
-
----
-
-## Production Deployment
-
-### Pre-Deployment Checklist
-
-- [ ] Update `origins` in `main.py` with production frontend URL
-- [ ] Update `.env` with production Supabase credentials
-- [ ] Update `.env` with production Cloudinary credentials
-- [ ] Update `.env` with production SMTP credentials
-- [ ] Ensure `SUPABASE_SERVICE_ROLE_KEY` is kept secret (environment variable, not in code)
-- [ ] Set FastAPI debug mode to False in production
-- [ ] Use production ASGI server (e.g., Gunicorn) instead of development uvicorn
-
-### Recommended Deployment Platforms
-
-- Railway (currently in `origins`)
-- Render
-- Fly.io
-- AWS EC2 / Elastic Beanstalk
-
----
-
-## Implementation Notes & Best Practices
-
-### Async/Await for File Uploads
-
-**Important:** Blog endpoints use async file processing:
-- Endpoint functions are declared `async def`
-- File reads use `await file.read()` to get bytes
-- Pass bytes to `upload_image()`, not UploadFile objects
-- Example:
-  ```python
-  @app.post("/endpoint")
-  async def endpoint(file: UploadFile = File(...)):
-      file_content = await file.read()  # Get bytes
-      url = upload_image(file_content)  # Pass bytes
-  ```
-
-### Error Response Patterns
-
-**Pattern 1: Re-raise HTTPException**
 ```python
-try:
-    check_admin_or_subadmin(user)  # May raise 403
-    # ... operation ...
-except HTTPException:
-    raise  # Preserves status code
-except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e))
+origins = [
+    "http://localhost:5173",
+    "https://your-frontend-domain.com"  # Add your domain here
+]
 ```
 
-**Pattern 2: Upload with specific error message**
-```python
-try:
-    content = await file.read()
-    url = upload_image(content)
-except Exception as img_error:
-    raise HTTPException(
-        status_code=400,
-        detail=f"Upload failed: {str(img_error)}"
-    )
+### CORS Requirements
+- Include `Origin` header in requests (browser does this automatically)
+- For file uploads: use `multipart/form-data` content type
+- For protected endpoints: include `Authorization: Bearer {token}` header
+
+## 🛠️ Development
+
+### Development Server
+```bash
+uvicorn main:app --reload
 ```
 
-### Database Operations
+### API Documentation
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-**Supabase Query Patterns:**
-- Select: `supabase.table("table").select("*").execute()`
-- Filter: `.eq("column", value)`
-- Single record: `.single().execute()`
-- Insert: `.insert({...}).execute()`
-- Update: `.update({...}).eq("id", id).execute()`
-- Delete: `.delete().eq("id", id).execute()`
+### Code Style
+- Follow PEP 8 guidelines
+- Use type hints for better code documentation
+- Implement proper error handling
+- Use async/await for I/O operations
 
-### Authentication Flow
+### Testing
+Consider using:
+- **pytest** for unit testing
+- **httpx** for API testing
+- **factory-boy** for test data generation
 
-1. User calls `/login` → Returns `access_token`
-2. Frontend stores token
-3. Frontend includes `Authorization: Bearer {token}` in requests
-4. Backend uses `Depends(get_current_user)` to verify token
-5. Token verified with `supabase.auth.get_user(token)`
-6. If token invalid, returns 401
-7. If authorization needed, call `check_admin_or_subadmin(user)` (returns 403 if denied)
+## 🚀 Deployment
+
+### Production Server
+```bash
+# Using Gunicorn (recommended for production)
+gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
+
+# Or using Uvicorn directly
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### Environment Variables in Production
+Set all required environment variables in your production environment:
+- Use secure, production-specific credentials
+- Enable HTTPS in production
+- Configure proper CORS origins
+- Set appropriate logging levels
+
+### Docker Deployment
+Consider containerizing the application for easier deployment:
+
+```dockerfile
+FROM python:3.9-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Update documentation
+6. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+
+1. **Check the API documentation**: http://localhost:8000/docs
+2. **Review error messages**: Check server logs for detailed error information
+3. **Verify configuration**: Ensure all environment variables are set correctly
+4. **Test with simple requests**: Use curl or Postman to test endpoints
+5. **Check Supabase dashboard**: Verify tables and data exist
+6. **Review Cloudinary dashboard**: Check image uploads and credentials
+
+### Common Issues
+
+#### CORS Errors
+- Verify frontend origin is in the allowed origins list
+- Check that the server has been restarted after adding origins
+- Ensure the frontend is sending the correct Origin header
+
+#### Authentication Failures
+- Verify the JWT token is being sent in the Authorization header
+- Check that the token hasn't expired
+- Ensure the user has the correct role for the requested operation
+
+#### File Upload Issues
+- Verify file size limits are appropriate
+- Check that the correct content type is being used
+- Ensure Cloudinary credentials are correct
+
+#### Database Connection Issues
+- Verify Supabase URL and service role key are correct
+- Check that the required tables exist in Supabase
+- Ensure the database is accessible from your environment
 
 ---
 
-## Support & Debugging
-
-For additional help:
-1. Check FastAPI documentation: https://fastapi.tiangolo.com
-2. Check Supabase documentation: https://supabase.com/docs
-3. Check Cloudinary documentation: https://cloudinary.com/documentation
-4. Review server logs: Check uvicorn output for error details
-5. Use FastAPI Swagger UI (`/docs`) to test endpoints interactively
-
+**Note**: This API is designed for integration with frontend applications. Always use HTTPS in production and follow security best practices when handling user data and authentication tokens.

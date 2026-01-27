@@ -71,13 +71,19 @@ async def apply_job(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error applying for job: {str(e)}")
 
+#get applicants data from applications
+@jobapply_router.get("/{job_id}/applicants/count")
+def get_applicants(job_id: str):
+    #check for unique userid
+    response = supabase.table("applications")\
+    .select("user_id",count="exact")\
+    .eq("job_id", job_id).execute()
+    return {"total applicants": response.count}
 # Get all applications for a user
 @jobapply_router.get("/my_applications")
 def get_my_applications(user_email: str):
-    """
-    Get all job applications for a specific user email.
-    """
     try:
+        #Get applications
         response = supabase.table("applications").select(
             "id, job_id, status, applied_at, jobs(title, department, salary_range)"
         ).eq("user_email", user_email).execute()
@@ -85,45 +91,26 @@ def get_my_applications(user_email: str):
         return {"applications": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching applications: {str(e)}")
+# Get single application details
+@jobapply_router.get("/applications/{app_id}")
+def get_application(app_id: str):
+    
+    try:
+        application = supabase.table("applications").select(
+            "id, job_id, user_email, user_name, resume_url, cover_letter, status, applied_at, jobs(title, department, salary_range)"
+        ).eq("id", app_id).single().execute()
+        
+        if not application.data:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        return {"application": application.data}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching application: {str(e)}")
 
-# # Get all applications for a job (admin only)
-# @jobapply_router.get("/job/{job_id}/applications")
-# def get_job_applications(job_id: str, user=Depends(get_current_user)):
-#     """
-#     Get all applications for a specific job (Admin/Subadmin only).
-#     """
-#     try:
-#         check_admin_or_subadmin(user)
-        
-#         applications = supabase.table("applications").select(
-#             "id, user_email, user_name, status, applied_at, resume_url"
-#         ).eq("job_id", job_id).execute()
-        
-#         return {"applications": applications.data}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error fetching applications: {str(e)}")
-
-# # Get single application details
-# @jobapply_router.get("/applications/{app_id}")
-# def get_application(app_id: str, user=Depends(get_current_user)):
-#     """
-#     Get details of a specific application.
-#     """
-#     try:
-#         application = supabase.table("applications").select(
-#             "id, job_id, user_email, user_name, resume_url, cover_letter, status, applied_at, jobs(title, department, salary_range)"
-#         ).eq("id", app_id).single().execute()
-        
-#         if not application.data:
-#             raise HTTPException(status_code=404, detail="Application not found")
-        
-#         return {"application": application.data}
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error fetching application: {str(e)}")
-
-# Update application status (admin only)
+# Update application status
 @jobapply_router.patch("/applications/{app_id}/status")
 def update_application_status(app_id: str, status: str):
     try:
@@ -143,9 +130,6 @@ def update_application_status(app_id: str, status: str):
 # Withdraw application
 @jobapply_router.delete("/applications/{app_id}")
 def withdraw_application(app_id: str, user=Depends(get_current_user)):
-    """
-    Withdraw a job application.
-    """
     try:
         supabase.table("applications").delete().eq("id", app_id).execute()
         return {"message": "Application withdrawn successfully"}

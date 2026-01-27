@@ -30,6 +30,26 @@ async def upload_image_endpoint(image_file: UploadFile = File(None)):
     response = cloudinary.uploader.upload(file_content)
     return {"url" :response.get("secure_url")}
 
+#sort the blog with creation date
+@blog_router.get("/")
+def blog_sort(sort: str):
+ try:
+    if sort == "latest":
+        sort_blogs = supabase.table("blogs").select("*").order("created_at", desc=True).execute()
+ 
+    elif sort == "oldest":
+        sort_blogs = supabase.table("blogs").select("*").order("created_at", desc=False).execute()
+    else:
+        raise HTTPException(status_code=400, detail="Invalid sort option")
+
+    return sort_blogs.data
+ except Exception as e:
+        # handle unexpected db/runtime errors
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch blogs: {str(e)}"
+        )
+      
 #create_blog api
 @blog_router.post("/")
 async def create_blog(title:str = Form(...),#Parameters that passes to supabase table
@@ -41,7 +61,7 @@ async def create_blog(title:str = Form(...),#Parameters that passes to supabase 
                 image: Optional[UploadFile] = File(None), user=Depends(get_current_user)):
     try:
         check_admin_or_subadmin(user)
-        image_url = None
+        image_url = None #default none
         if image:
             try:
                 file_content = await image.read()
