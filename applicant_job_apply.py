@@ -79,14 +79,15 @@ def get_applicants(job_id: str):
     .select("user_id",count="exact")\
     .eq("job_id", job_id).execute()
     return {"total applicants": response.count}
+
 # Get all applications for a user
 @jobapply_router.get("/my_applications")
-def get_my_applications(user_email: str):
+def get_my_applications():
     try:
         #Get applications
         response = supabase.table("applications").select(
-            "id, job_id, status, applied_at, jobs(title, department, salary_range)"
-        ).eq("user_email", user_email).execute()
+            "id,applicant_name,user_email, status"
+        ).execute()
         
         return {"applications": response.data}
     except Exception as e:
