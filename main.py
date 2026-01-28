@@ -41,6 +41,15 @@ app.add_middleware(
 )
 
 
+# Add middleware to handle proxy headers (HTTPS)
+@app.middleware("http")
+async def proxy_middleware(request: Request, call_next):
+    # If the request was made via HTTPS, ensure FastAPI knows about it
+    if request.headers.get("x-forwarded-proto") == "https":
+        request.scope["scheme"] = "https"
+    return await call_next(request)
+
+
 # Global exception handler to ensure CORS headers on errors
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -55,7 +64,8 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": str(exc)},
         headers={
             "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
-            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
     )
 

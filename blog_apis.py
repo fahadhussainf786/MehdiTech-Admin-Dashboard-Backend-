@@ -54,6 +54,7 @@ async def upload_image_endpoint(image_file: UploadFile = File(None)):
 
 # create_blog api
 @blog_router.post("")
+@blog_router.post("/")
 async def create_blog(
     title: str = Form(...),  # Parameters that passes to supabase table
     content: str = Form(...),
@@ -140,6 +141,7 @@ def get_blog(blog_id: str):
 
 # Get all blogs api
 @blog_router.get("")
+@blog_router.get("/")
 def get_blogs():
     try:
         # Fetch all blogs from blogs table
