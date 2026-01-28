@@ -94,6 +94,9 @@ async def create_blog(title:str = Form(...),#Parameters that passes to supabase 
                 "internal_urls": internal_urls,
                 "created_by": user.user.id,
                 "author": author,
+                # "author_images": author_image,
+                # "author_overview": author_overview,
+                # "cta": cta,
                 "tags": tags_list,
                 "category": category
             }).execute()
