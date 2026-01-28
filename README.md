@@ -95,6 +95,12 @@ This FastAPI backend provides a complete solution for managing a content managem
 - **SMTP** - Email sending via Gmail
 - **Python-dotenv** - Environment variable management
 - **Cloudinary SDK** - Image upload utilities
+- **Python-multipart** - Form data parsing for file uploads
+- **Pydantic** - Data validation and serialization
+- **Pydantic-core** - Core validation engine
+- **Email-validator** - Email validation utilities
+- **Python-http-client** - HTTP client for email services
+- **Resend** - Email service integration
 
 ## 📁 Project Structure
 
@@ -288,10 +294,7 @@ Content-Type: multipart/form-data
 ```
 
 #### GET /blogs/
-Retrieve all blogs.
-
-**Query Parameters:**
-- `sort`: "latest" or "oldest" (optional)
+Retrieve all blogs (no sorting parameter available in current implementation).
 
 **Response (200):**
 ```json
@@ -511,6 +514,7 @@ Content-Type: multipart/form-data
 
 **Form Data:**
 - `user_email`: Applicant email
+- `title`: Job title (retrieved from job_id)
 - `name`: Applicant name
 - `phone_number`: Phone number (optional)
 - `resume`: Resume file (optional, PDF)
@@ -534,15 +538,12 @@ Get total number of applicants for a job.
 ```
 
 #### GET /jobapply/my_applications
-Get all applications for the current user.
+Get all applications (Admin only - no user filtering in current implementation).
 
 **Headers:**
 ```
 Authorization: Bearer {access_token}
 ```
-
-**Query Parameters:**
-- `user_email`: User email
 
 **Response (200):**
 ```json
@@ -550,22 +551,26 @@ Authorization: Bearer {access_token}
   "applications": [
     {
       "id": "uuid",
-      "job_id": "job-uuid",
+      "applicant_name": "Applicant Name",
       "user_email": "user@example.com",
       "status": "Applied",
-      "applied_at": "2023-01-01T00:00:00Z",
+      "created_at": "2023-01-01T00:00:00Z",
       "jobs": {
-        "title": "Job Title",
-        "department": "Department",
-        "salary_range": "$80,000 - $120,000"
-      }
+        "title": "Job Title"
+      },
+      "phone_number": "+1234567890"
     }
   ]
 }
 ```
 
-#### GET /jobapply/applications/{app_id}
-Get details of a specific application.
+#### GET /jobapply/my_applications/{app_id}
+Get details of a specific application (Admin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
 
 **Response (200):**
 ```json
@@ -573,15 +578,12 @@ Get details of a specific application.
   "application": {
     "id": "uuid",
     "job_id": "job-uuid",
-    "user_email": "user@example.com",
     "applicant_name": "Applicant Name",
-    "resume_url": "https://...",
+    "user_email": "user@example.com",
     "status": "Applied",
-    "applied_at": "2023-01-01T00:00:00Z",
+    "created_at": "2023-01-01T00:00:00Z",
     "jobs": {
-      "title": "Job Title",
-      "department": "Department",
-      "salary_range": "$80,000 - $120,000"
+      "title": "Job Title"
     }
   }
 }
@@ -662,11 +664,21 @@ The system implements three user roles:
 - **Subadmin**: Access to admin-level operations (same as admin in current implementation)
 - **User**: Limited access (cannot create/update/delete content)
 
+**Role Assignment:**
+- User roles are stored in the `user_roles` table in Supabase
+- After user signup, roles must be manually assigned by an admin
+- Role is checked on every protected endpoint using `check_admin_or_subadmin()` function
+
 ### Protected Endpoints
 The following endpoints require admin or subadmin privileges:
 - Blog management (create, update, delete)
 - Job management (create, update, delete, close)
 - Application status updates with email notifications
+
+**Role Checking Logic:**
+- `get_current_user()`: Verifies JWT token and returns user object
+- `check_admin_or_subadmin()`: Checks if user has 'admin' or 'subadmin' role
+- Returns 403 Forbidden if user has no role or role is not admin/subadmin
 
 ## 🗄️ Database Schema
 
@@ -722,13 +734,13 @@ Stores job application information.
 CREATE TABLE applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID REFERENCES jobs(id),
-  user_id UUID REFERENCES auth.users(id),
+  title VARCHAR(255),  -- Job title (retrieved from job_id)
   user_email VARCHAR(255) NOT NULL,
   applicant_name VARCHAR(255) NOT NULL,
   resume_url TEXT,
   phone_number VARCHAR(20),
   status VARCHAR(50) DEFAULT 'Applied',
-  applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
@@ -880,18 +892,56 @@ All error responses follow this standard format:
 ```
 
 ### Common Error Codes
-- **400 Bad Request**: Invalid input, file upload failed, database errors
-- **401 Unauthorized**: Missing or invalid authentication token
-- **403 Forbidden**: User role does not permit this action
-- **404 Not Found**: Requested resource does not exist
-- **500 Internal Server Error**: Unexpected server error
+- **400 Bad Request**: Invalid input, file upload failed, database errors, missing required fields
+- **401 Unauthorized**: Missing or invalid authentication token, expired token
+- **403 Forbidden**: User role does not permit this action, insufficient permissions
+- **404 Not Found**: Requested resource does not exist, job not found, application not found
+- **500 Internal Server Error**: Unexpected server error, database connection issues, SMTP errors
+
+### Error Handling Patterns in Code
+The application uses a layered error handling approach:
+
+1. **Specific Error Handling**: Each endpoint catches specific exceptions and returns appropriate HTTP status codes
+2. **HTTPException Re-raising**: When an HTTPException is caught, it's re-raised to preserve the status code
+3. **Global Exception Handler**: A global handler catches any unhandled exceptions and returns 500 errors with CORS headers
+
+**Example Error Handling Pattern:**
+```python
+try:
+    # Operation that might fail
+    check_admin_or_subadmin(user)  # May raise 403
+    # ... other operations ...
+except HTTPException:
+    raise  # Preserve status code
+except Exception as e:
+    raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+```
+
+### Common Error Scenarios
+
+#### Authentication Errors
+- **401**: Invalid token, expired token, missing Authorization header
+- **403**: User role not found, user is not admin/subadmin
+
+#### File Upload Errors
+- **400**: No file provided, Cloudinary upload failed, invalid file type
+- **500**: Cloudinary service unavailable, network issues
+
+#### Database Errors
+- **400**: Database insert/update failed, constraint violations
+- **404**: Record not found (job, blog, application)
+- **500**: Database connection issues, service unavailable
+
+#### Email Errors
+- **500**: SMTP connection failed, invalid credentials, email service unavailable
 
 ### Error Handling Best Practices
-1. Always check response status codes
-2. Handle specific error cases appropriately
-3. Provide user-friendly error messages
-4. Log errors for debugging purposes
-5. Implement retry logic for transient failures
+1. Always check response status codes before processing response data
+2. Handle specific error cases appropriately (e.g., show user-friendly messages for 403 errors)
+3. Provide user-friendly error messages that don't expose sensitive information
+4. Log errors on the server side for debugging purposes
+5. Implement retry logic for transient failures (network issues, temporary service unavailability)
+6. Use appropriate error messages for different user roles (admin vs regular user)
 
 ## 🌐 CORS Configuration
 
