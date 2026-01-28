@@ -20,9 +20,10 @@ supabase = create_client(
 async def apply_job(
     job_id: str,
     user_email: str = Form(...),
+    title: str = Form(...),
     name: str = Form(...),
     phone_number: str = Form(None),
-    resume: UploadFile = File(None), user=Depends(get_current_user)
+    resume: UploadFile = File(None)
 ):
     try:
        
@@ -53,7 +54,7 @@ async def apply_job(
         # Insert application
         response = supabase.table("applications").insert({
             "job_id": job_id,
-            "user_id": user.user.id,
+            "title": title,
             "user_email": user_email,
             "applicant_name": name,
             "resume_url": resume_url,
@@ -71,7 +72,7 @@ async def apply_job(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error applying for job: {str(e)}")
 
-#get applicants data from applications
+#get number applicants count from applications
 @jobapply_router.get("/{job_id}/applicants/count")
 def get_applicants(job_id: str):
     #check for unique userid
@@ -86,7 +87,7 @@ def get_my_applications():
     try:
         #Get applications
         response = supabase.table("applications").select(
-            "id,applicant_name,user_email,status,positions,phone_number, created_at"
+            "id,applicant_name,user_email,status,jobs(title) ,phone_number,created_at"
         ).execute()
         
         return {"applications": response.data}
@@ -94,11 +95,11 @@ def get_my_applications():
         raise HTTPException(status_code=500, detail=f"Error fetching applications: {str(e)}")
 
 # Get single application details
-@jobapply_router.get("/applications/{app_id}")
+@jobapply_router.get("/my_applications/{app_id}")
 def get_application(app_id: str):
     try:
         application = supabase.table("applications").select(
-            "id, job_id, user_email, user_name, resume_url, cover_letter, status, applied_at, jobs(title, department, salary_range)"
+            "id, job_id, applicant_name, user_email, status, created_at, jobs(title)"
         ).eq("id", app_id).single().execute()
         
         if not application.data:
@@ -111,7 +112,7 @@ def get_application(app_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching application: {str(e)}")
 
-# Update application status
+# Admin section Update application status
 @jobapply_router.patch("/applications/{app_id}/status")
 def update_application_status(app_id: str, status: str):
     try:
@@ -128,7 +129,7 @@ def update_application_status(app_id: str, status: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating application: {str(e)}")
 
-# Withdraw application
+# Admin section delete application
 @jobapply_router.delete("/applications/{app_id}")
 def withdraw_application(app_id: str, user=Depends(get_current_user)):
     try:
