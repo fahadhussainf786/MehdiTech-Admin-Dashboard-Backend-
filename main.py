@@ -21,11 +21,13 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
+    "https://localhost:3000",
     "https://admin-section-mehdi-tech.vercel.app",
     "https://mehdi-technologies-admin-website.vercel.app",
-    "https://admin.mehditechnologies.com/login",
     "https://admin.mehditechnologies.com",
-    "https://www.mehditechnologies.com/"
+    "https://www.mehditechnologies.com",
+    "https://mehditechnologies.com",
+    "https://mehditech-admin-dashboard-backend-production.up.railway.app"
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -72,7 +74,7 @@ supabase = create_client(
 class SignupRequest(BaseModel):
     email: str
     password: str
-    
+
 class LoginRequest(BaseModel):
     email: str
     password: str
