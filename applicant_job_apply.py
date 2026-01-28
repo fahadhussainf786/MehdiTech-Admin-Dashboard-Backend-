@@ -15,7 +15,7 @@ supabase = create_client(
     os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 )
 
-# Apply for a job
+# user section Apply for a job
 @jobapply_router.post("/job_apply/{job_id}")
 async def apply_job(
     job_id: str,
@@ -72,7 +72,7 @@ async def apply_job(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error applying for job: {str(e)}")
 
-#get number applicants count from applications
+#admin section Get number of applicants
 @jobapply_router.get("/{job_id}/applicants/count")
 def get_applicants(job_id: str):
     #check for unique userid
@@ -81,20 +81,20 @@ def get_applicants(job_id: str):
     .eq("job_id", job_id).execute()
     return {"total applicants": response.count}
 
-# Get all applications for a user
+# admin section Get all applications for a user
 @jobapply_router.get("/my_applications")
 def get_my_applications():
     try:
-        #Get applications
+        #Get applications in order
         response = supabase.table("applications").select(
             "id,applicant_name,user_email,status,jobs(title) ,phone_number,created_at"
-        ).execute()
+        ).order("created_at", desc=True).execute()
         
         return {"applications": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching applications: {str(e)}")
 
-# Get single application details
+# admin section Get single application details
 @jobapply_router.get("/my_applications/{app_id}")
 def get_application(app_id: str):
     try:
