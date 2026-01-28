@@ -23,7 +23,8 @@ origins = [
     "http://localhost:3000",
     "https://admin-section-mehdi-tech.vercel.app",
     "https://mehdi-technologies-admin-website.vercel.app",
-    "https://admin.mehditechnologies.com/",
+    "https://admin.mehditechnologies.com/login",
+    "https://admin.mehditechnologies.com",
     "https://www.mehditechnologies.com/"
 ]
 app.add_middleware(
