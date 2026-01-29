@@ -20,7 +20,6 @@ supabase = create_client(
 # Setup bearer authentication
 security = HTTPBearer()
 
-
 # Make api for uploading image
 @blog_router.post("/uploadimage")
 async def upload_image_endpoint(image_file: UploadFile = File(None)):
@@ -57,8 +56,6 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 content:str = Form(...),
                 author:str = Form(...),
                 author_image: Optional[UploadFile] = File(None),
-                meta_title: str =Form(...),
-                meta_description: str = Form(...),
                 author_overview:str = Form(...),
                 cta:str = Form(...),
                 tags:str = Form(...),
@@ -112,8 +109,6 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 "author_images": author_image_url,
                 "author_overview": author_overview,
                 "cta": cta,
-                "meta_title": meta_title,
-                "meta_description": meta_description,
                 "tags": tags_list,
                 "category": category
             }).execute()
@@ -172,8 +167,6 @@ def update_blog(blog_id: str, blog: dict, user=Depends(get_current_user)):
             "author_images": blog["author_image_url"],
             "author_overview": blog["author_overview"],
             "cta": blog["cta"],
-            "meta_title": blog["meta_title"],
-            "meta_description": blog["meta_description"],
             "author": blog["author"],
             "tags": blog["tags_list"],
             "category": blog["category"]

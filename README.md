@@ -53,7 +53,6 @@ This FastAPI backend provides a complete solution for managing a content managem
 - Sort blogs by creation date (latest/oldest)
 - Admin/Subadmin only editing capabilities
 - Author image upload and management
-- Meta title and description for SEO
 - Author overview and call-to-action (CTA) fields
 - Edit blog details endpoint for frontend forms
 
@@ -286,8 +285,6 @@ Content-Type: multipart/form-data
 - `content`: Blog content (HTML supported)
 - `author`: Author name
 - `author_image`: Author profile image (optional)
-- `meta_title`: SEO meta title
-- `meta_description`: SEO meta description
 - `author_overview`: Author biography
 - `cta`: Call-to-action text
 - `tags`: Comma-separated tags
@@ -322,8 +319,6 @@ Retrieve all blogs with optional sorting by creation date.
       "author_images": "https://...",
       "author_overview": "Author bio...",
       "cta": "Call to action text",
-      "meta_title": "SEO meta title",
-      "meta_description": "SEO meta description",
       "tags": ["tag1", "tag2"],
       "category": "Category",
       "created_at": "2023-01-01T00:00:00Z",
@@ -373,8 +368,6 @@ Content-Type: application/json
   "author_image_url": "https://new-author-image.jpg",
   "author_overview": "Updated author bio...",
   "cta": "Updated call to action...",
-  "meta_title": "Updated SEO title",
-  "meta_description": "Updated SEO description",
   "author": "Updated Author",
   "tags_list": ["tag1", "tag2"],
   "category": "Updated Category"
@@ -417,8 +410,6 @@ Authorization: Bearer {access_token}
     "author_images": "https://...",
     "author_overview": "Author bio...",
     "cta": "Call to action text",
-    "meta_title": "SEO meta title",
-    "meta_description": "SEO meta description",
     "tags": ["tag1", "tag2"],
     "category": "Category",
     "created_at": "2023-01-01T00:00:00Z",
@@ -761,8 +752,6 @@ CREATE TABLE blogs (
   author_images TEXT,
   author_overview TEXT,
   cta TEXT,
-  meta_title VARCHAR(255),
-  meta_description TEXT,
   tags TEXT[],
   category VARCHAR(100) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
