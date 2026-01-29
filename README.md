@@ -52,6 +52,10 @@ This FastAPI backend provides a complete solution for managing a content managem
 - Tag-based categorization
 - Sort blogs by creation date (latest/oldest)
 - Admin/Subadmin only editing capabilities
+- Author image upload and management
+- Meta title and description for SEO
+- Author overview and call-to-action (CTA) fields
+- Edit blog details endpoint for frontend forms
 
 ### 💼 Job Management
 - Create and manage job postings
@@ -281,6 +285,11 @@ Content-Type: multipart/form-data
 - `title`: Blog title
 - `content`: Blog content (HTML supported)
 - `author`: Author name
+- `author_image`: Author profile image (optional)
+- `meta_title`: SEO meta title
+- `meta_description`: SEO meta description
+- `author_overview`: Author biography
+- `cta`: Call-to-action text
 - `tags`: Comma-separated tags
 - `category`: Blog category
 - `image`: Thumbnail image (optional)
@@ -294,7 +303,10 @@ Content-Type: multipart/form-data
 ```
 
 #### GET /blogs/
-Retrieve all blogs (no sorting parameter available in current implementation).
+Retrieve all blogs with optional sorting by creation date.
+
+**Query Parameters:**
+- `sort` (optional): Sort order - "latest" (default) or "oldest"
 
 **Response (200):**
 ```json
@@ -307,6 +319,11 @@ Retrieve all blogs (no sorting parameter available in current implementation).
       "thumbnail": "https://...",
       "internal_urls": ["https://..."],
       "author": "Author Name",
+      "author_images": "https://...",
+      "author_overview": "Author bio...",
+      "cta": "Call to action text",
+      "meta_title": "SEO meta title",
+      "meta_description": "SEO meta description",
       "tags": ["tag1", "tag2"],
       "category": "Category",
       "created_at": "2023-01-01T00:00:00Z",
@@ -353,6 +370,11 @@ Content-Type: application/json
   "content": "Updated content...",
   "image_url": "https://new-thumbnail-url.jpg",
   "internal_urls": ["url1", "url2"],
+  "author_image_url": "https://new-author-image.jpg",
+  "author_overview": "Updated author bio...",
+  "cta": "Updated call to action...",
+  "meta_title": "Updated SEO title",
+  "meta_description": "Updated SEO description",
   "author": "Updated Author",
   "tags_list": ["tag1", "tag2"],
   "category": "Updated Category"
@@ -371,6 +393,37 @@ Authorization: Bearer {access_token}
 ```json
 {
   "message": "Blog deleted successfully"
+}
+```
+
+#### GET /blogs/{blog_id}/edit
+Get blog details for editing (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
+
+**Response (200):**
+```json
+{
+  "blog": {
+    "id": "uuid",
+    "title": "Blog Title",
+    "content": "Blog content...",
+    "thumbnail": "https://...",
+    "internal_urls": ["https://..."],
+    "author": "Author Name",
+    "author_images": "https://...",
+    "author_overview": "Author bio...",
+    "cta": "Call to action text",
+    "meta_title": "SEO meta title",
+    "meta_description": "SEO meta description",
+    "tags": ["tag1", "tag2"],
+    "category": "Category",
+    "created_at": "2023-01-01T00:00:00Z",
+    "created_by": "user-id"
+  }
 }
 ```
 
@@ -705,6 +758,11 @@ CREATE TABLE blogs (
   internal_urls TEXT[],
   created_by UUID REFERENCES auth.users(id),
   author VARCHAR(100) NOT NULL,
+  author_images TEXT,
+  author_overview TEXT,
+  cta TEXT,
+  meta_title VARCHAR(255),
+  meta_description TEXT,
   tags TEXT[],
   category VARCHAR(100) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -946,30 +1004,69 @@ except Exception as e:
 ## 🌐 CORS Configuration
 
 ### Default Origins
-The application is configured to allow requests from:
+The application is configured to allow requests from multiple domains including:
 - `http://localhost:5173`
 - `http://127.0.0.1:5173`
 - `http://localhost:3000`
+- `http://127.0.0.1:3000`
+- `https://localhost:3000`
 - `https://admin-section-mehdi-tech.vercel.app`
+- `https://mehdi-technologies-admin-website.vercel.app`
+- `https://admin.mehditechnologies.com`
+- `https://www.mehditechnologies.com`
+- `https://mehditechnologies.com`
+- `https://mehditech-admin-dashboard-backend-production.up.railway.app`
 
-### Adding New Origins
-To add a new frontend origin:
-
-1. Edit the `origins` list in `main.py`
-2. Add the exact URL (no trailing slash)
-3. Restart the server
+### CORS Configuration
+The application uses a flexible CORS setup with wildcard origins for maximum compatibility:
 
 ```python
-origins = [
-    "http://localhost:5173",
-    "https://your-frontend-domain.com"  # Add your domain here
-]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for flexibility
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+```
+
+### Proxy Middleware
+The application includes middleware to handle proxy headers for HTTPS requests:
+
+```python
+@app.middleware("http")
+async def proxy_middleware(request: Request, call_next):
+    # If the request was made via HTTPS, ensure FastAPI knows about it
+    if request.headers.get("x-forwarded-proto") == "https":
+        request.scope["scheme"] = "https"
+    return await call_next(request)
+```
+
+### CORS Error Handling
+The application includes comprehensive CORS error handling with debug logging:
+
+```python
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"Request origin: {request.headers.get('origin', 'No origin header')}")
+    # Return JSON response with CORS-friendly error
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+    )
 ```
 
 ### CORS Requirements
 - Include `Origin` header in requests (browser does this automatically)
 - For file uploads: use `multipart/form-data` content type
 - For protected endpoints: include `Authorization: Bearer {token}` header
+- The application automatically handles preflight OPTIONS requests
 
 ## 🛠️ Development
 

@@ -85,17 +85,14 @@ supabase = create_client(
     os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 )
 
-
 # signup and login request body to receive data
 class SignupRequest(BaseModel):
     email: str
     password: str
 
-
 class LoginRequest(BaseModel):
     email: str
     password: str
-
 
 # api for signup
 @app.post("/signup")
@@ -134,14 +131,13 @@ def login(data: LoginRequest):
     )
     role = role_data.data[0]["role"] if role_data.data else "user"
 
-    # return jwt token
+    # return token,role and email
     return {
         "access_token": auth_response.session.access_token,
         "token_type": "bearer",
         "Role": role,
         "email": data.email,
     }
-
 
 # admin api call after logged in
 @app.get("/admin")  # first get get_current_user to verify token
