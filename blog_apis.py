@@ -49,15 +49,17 @@ async def upload_image_endpoint(image_file: UploadFile = File(None)):
 #             status_code=500,
 #             detail=f"Failed to fetch blogs: {str(e)}"
 #         )
-      
+
 #create_blog api
 @blog_router.post("/")
-async def create_blog(title:str = Form(...),#Parameters that passes to supabase table
+async def create_blog(title:str = Form(...),#Parameters that passes below supabase table
                 content:str = Form(...),
                 author:str = Form(...),
-                # author_images = Form(...),
-                # author_overview = Form(...),
-                # cta = Form(...),
+                author_image: Optional[UploadFile] = File(None),
+                meta_title: str =Form(...),
+                meta_description: str = Form(...),
+                author_overview:str = Form(...),
+                cta:str = Form(...),
                 tags:str = Form(...),
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
@@ -87,6 +89,15 @@ async def create_blog(title:str = Form(...),#Parameters that passes to supabase 
                         status_code=400,
                         detail=f"Internal image upload failed: {str(img_error)}"
                     )
+    
+        #get authorimage url
+        author_image_url = None,
+        if author_image:
+            try:
+                file_content = await author_image.read()
+                author_image_url = upload_image(file_content)
+            except Exception as e:
+                raise Exception
         # Convert comma text to list
         tags_list = tags.split(",")
         try:
@@ -97,9 +108,11 @@ async def create_blog(title:str = Form(...),#Parameters that passes to supabase 
                 "internal_urls": internal_urls,
                 "created_by": user.user.id,
                 "author": author,
-                # "author_images": author_image,
-                # "author_overview": author_overview,
-                # "cta": cta,
+                "author_images": author_image_url,
+                "author_overview": author_overview,
+                "cta": cta,
+                "meta_title": meta_title,
+                "meta_description": meta_description,
                 "tags": tags_list,
                 "category": category
             }).execute()
@@ -152,6 +165,11 @@ def update_blog(blog_id: str, blog: dict, user=Depends(get_current_user)):
             "content": blog["content"],
             "thumbnail": blog["image_url"],
             "internal_urls": blog["internal_urls"],
+            "author_images": blog["author_image_url"],
+            "author_overview": blog["author_overview"],
+            "cta": blog["cta"],
+            "meta_title": blog["meta_title"],
+            "meta_description": blog["meta_description"],
             "author": blog["author"],
             "tags": blog["tags_list"],
             "category": blog["category"]

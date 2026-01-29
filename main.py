@@ -137,7 +137,7 @@ def login(data: LoginRequest):
     role_data = supabase.table("user_roles").select("role").eq("user_id", user.id).execute()
     role = role_data.data[0]['role'] if role_data.data else 'user'
 
-    #return jwt token
+    #return token, role and email
     return {
         "access_token": auth_response.session.access_token,
         "token_type": "bearer",
