@@ -8,8 +8,9 @@ import os
 from dotenv import load_dotenv
 from blog_apis import blog_router  # Import routers
 from jobs import jobs_router
-from automated_email import email_router
 from applicant_job_apply import jobapply_router
+from blogs_seo import blog_seo_router
+from automated_email import email_router
 from auth import get_current_user, check_admin_or_subadmin
 import time
 import traceback
@@ -69,7 +70,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-
 load_dotenv()
 
 # Get blog routes
@@ -77,6 +77,7 @@ app.include_router(blog_router)
 app.include_router(jobs_router)
 app.include_router(email_router)
 app.include_router(jobapply_router)
+app.include_router(blog_seo_router)
 # Security
 security = HTTPBearer()
 

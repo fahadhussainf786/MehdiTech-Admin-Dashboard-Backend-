@@ -418,6 +418,64 @@ Authorization: Bearer {access_token}
 }
 ```
 
+### Blog SEO Management Endpoints
+
+#### POST /blogs_seo/{blog_id}
+Create SEO metadata for a blog post (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+- `meta_title`: SEO meta title
+- `meta_description`: SEO meta description
+- `keywords`: Comma-separated keywords
+- `slug`: URL slug for the blog
+- `image`: SEO thumbnail image (optional)
+
+**Response (200):**
+```json
+{
+  "blogs seo successfull"
+}
+```
+
+#### PATCH /blogs_seo/{blog_id}
+Update SEO metadata for a blog post (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+- `meta_title`: SEO meta title
+- `meta_description`: SEO meta description
+- `keywords`: Comma-separated keywords
+- `slug`: URL slug for the blog
+- `image`: SEO thumbnail image (optional)
+
+**Response (200):**
+```json
+{
+  "message": "blog seo updated"
+}
+```
+
+#### GET /blogs_seo/{blog_id}
+Retrieve SEO metadata for a blog post.
+
+**Response (200):**
+```json
+{
+  "Get blogs "
+}
+```
+
 ### Job Management Endpoints
 
 #### POST /jobs/
@@ -798,6 +856,21 @@ CREATE TABLE email_templates (
   status VARCHAR(50) PRIMARY KEY,
   subject VARCHAR(255) NOT NULL,
   body TEXT NOT NULL
+);
+```
+
+#### blogs_seo
+Stores SEO metadata for blog posts.
+```sql
+CREATE TABLE blogs_seo (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  blog_id UUID REFERENCES blogs(id),
+  meta_title VARCHAR(255),
+  meta_description TEXT,
+  keywords TEXT[],
+  thumbnail TEXT,
+  slug VARCHAR(255) UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
