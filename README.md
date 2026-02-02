@@ -286,12 +286,12 @@ Content-Type: multipart/form-data
 - `author`: Author name (required)
 - `author_image`: Author profile image (optional)
 - `author_overview`: Author biography (required)
-- `meta_title`: SEO meta title (required)
-- `meta_description`: SEO meta description (required)
-- `keywords`: Comma-separated keywords (required)
+- `meta_title`: SEO meta title (Optional)
+- `meta_description`: SEO meta description (Optional)
+- `keywords`: Comma-separated keywords (Optional)
 - `thumbnail_image`: Blog thumbnail image (optional)
 - `cta`: Call-to-action text (required)
-- `slug`: URL slug for the blog (required)
+- `slug`: URL slug for the blog (Optional)
 - `tags`: Comma-separated tags (required)
 - `category`: Blog category (required)
 - `internal_images`: Internal content images (optional, multiple)
@@ -379,7 +379,7 @@ Content-Type: multipart/form-data
 - `content`: Blog content (HTML supported)
 - `author`: Author name
 - `author_overview`: Author biography
-- `meta_title`: SEO meta title
+- `meta_title`: SEO meta title 
 - `meta_description`: SEO meta description
 - `keywords`: Comma-separated keywords
 - `cta`: Call-to-action text
@@ -454,64 +454,6 @@ Authorization: Bearer {access_token}
     "created_at": "2023-01-01T00:00:00Z",
     "created_by": "user-id"
   }
-}
-```
-
-### Blog SEO Management Endpoints
-
-#### POST /blogs_seo/{blog_id}
-Create SEO metadata for a blog post (Admin/Subadmin only).
-
-**Headers:**
-```
-Authorization: Bearer {access_token}
-Content-Type: multipart/form-data
-```
-
-**Form Data:**
-- `meta_title`: SEO meta title
-- `meta_description`: SEO meta description
-- `keywords`: Comma-separated keywords
-- `slug`: URL slug for the blog
-- `image`: SEO thumbnail image (optional)
-
-**Response (200):**
-```json
-{
-  "blogs seo successfull"
-}
-```
-
-#### PATCH /blogs_seo/{blog_id}
-Update SEO metadata for a blog post (Admin/Subadmin only).
-
-**Headers:**
-```
-Authorization: Bearer {access_token}
-Content-Type: multipart/form-data
-```
-
-**Form Data:**
-- `meta_title`: SEO meta title
-- `meta_description`: SEO meta description
-- `keywords`: Comma-separated keywords
-- `slug`: URL slug for the blog
-- `image`: SEO thumbnail image (optional)
-
-**Response (200):**
-```json
-{
-  "message": "blog seo updated"
-}
-```
-
-#### GET /blogs_seo/{blog_id}
-Retrieve SEO metadata for a blog post.
-
-**Response (200):**
-```json
-{
-  "Get blogs "
 }
 ```
 
