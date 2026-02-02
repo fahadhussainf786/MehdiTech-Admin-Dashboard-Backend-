@@ -55,9 +55,9 @@ async def upload_image_endpoint(image_file: UploadFile = File(None)):
 async def create_blog(title:str = Form(...),#Parameters that passes to supabase table
                 content:str = Form(...),
                 author:str = Form(...),
-                # author_images = Form(...),
-                # author_overview = Form(...),
-                # cta = Form(...),
+                author_images = Form(...),
+                author_overview = Form(...),
+                cta = Form(...),
                 tags:str = Form(...),
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
@@ -97,9 +97,9 @@ async def create_blog(title:str = Form(...),#Parameters that passes to supabase 
                 "internal_urls": internal_urls,
                 "created_by": user.user.id,
                 "author": author,
-                # "author_images": author_image,
-                # "author_overview": author_overview,
-                # "cta": cta,
+                "author_images": author_images,
+                "author_overview": author_overview,
+                "cta": cta,
                 "tags": tags_list,
                 "category": category
             }).execute()

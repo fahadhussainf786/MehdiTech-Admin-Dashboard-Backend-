@@ -66,7 +66,7 @@ async def apply_job(
             "message": "Application submitted successfully",
             "application_id": response.data[0]["id"]
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
