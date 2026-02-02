@@ -45,12 +45,12 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 author:str = Form(...),
                 author_image: Optional[UploadFile] = File(None),
                 author_overview:str = Form(...),
-                meta_title: Optional[str]= Form(...),
-                meta_description:Optional[str] = Form(...),
+                meta_title: Optional[str]= Form(None),
+                meta_description:Optional[str] = Form(None),
                 keywords: Optional[str] = Form(None),
                 thumbnail_image: Optional[UploadFile] = File(None),
                 cta:str = Form(...),
-                slug: Optional[str]= Form(...),
+                slug: Optional[str]= Form(None),
                 tags:str = Form(...),
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
@@ -107,7 +107,7 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
         
         # Convert comma text to list
         tags_list = tags.split(",")
-        keywords_list = [k.strip() for k in keywords.split(",")]
+        keywords_list = [k.strip() for k in keywords.split(",")] if keywords else None
 
         try:
             supabase.table("blogs").insert({
