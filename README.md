@@ -281,16 +281,21 @@ Content-Type: multipart/form-data
 ```
 
 **Form Data:**
-- `title`: Blog title
-- `content`: Blog content (HTML supported)
-- `author`: Author name
+- `title`: Blog title (required)
+- `content`: Blog content (HTML supported, required)
+- `author`: Author name (required)
 - `author_image`: Author profile image (optional)
-- `author_overview`: Author biography
-- `cta`: Call-to-action text
-- `tags`: Comma-separated tags
-- `category`: Blog category
-- `image`: Thumbnail image (optional)
+- `author_overview`: Author biography (required)
+- `meta_title`: SEO meta title (required)
+- `meta_description`: SEO meta description (required)
+- `keywords`: Comma-separated keywords (required)
+- `thumbnail_image`: Blog thumbnail image (optional)
+- `cta`: Call-to-action text (required)
+- `slug`: URL slug for the blog (required)
+- `tags`: Comma-separated tags (required)
+- `category`: Blog category (required)
 - `internal_images`: Internal content images (optional, multiple)
+- `image`: Main thumbnail image (optional)
 
 **Response (200):**
 ```json
@@ -315,6 +320,10 @@ Retrieve all blogs with optional sorting by creation date.
       "content": "Blog content...",
       "thumbnail": "https://...",
       "internal_urls": ["https://..."],
+      "meta_title": "SEO Meta Title",
+      "meta_description": "SEO Meta Description",
+      "keywords": ["keyword1", "keyword2"],
+      "slug": "blog-slug",
       "author": "Author Name",
       "author_images": "https://...",
       "author_overview": "Author bio...",
@@ -340,7 +349,14 @@ Retrieve a specific blog post.
     "content": "Blog content...",
     "thumbnail": "https://...",
     "internal_urls": ["https://..."],
+    "meta_title": "SEO Meta Title",
+    "meta_description": "SEO Meta Description",
+    "keywords": ["keyword1", "keyword2"],
+    "slug": "blog-slug",
     "author": "Author Name",
+    "author_images": "https://...",
+    "author_overview": "Author bio...",
+    "cta": "Call to action text",
     "tags": ["tag1", "tag2"],
     "category": "Category",
     "created_at": "2023-01-01T00:00:00Z",
@@ -349,28 +365,47 @@ Retrieve a specific blog post.
 }
 ```
 
-#### PUT /blogs/{blog_id}
-Update a blog post (Admin/Subadmin only).
+#### PATCH /blogs/{blog_id}
+Update a blog post (Admin/Subadmin only) - **FORM DATA SUPPORT**.
 
 **Headers:**
 ```
 Authorization: Bearer {access_token}
-Content-Type: application/json
+Content-Type: multipart/form-data
 ```
 
-**Request Body:**
+**Form Data (All fields are optional - only provide fields you want to update):**
+- `title`: Blog title
+- `content`: Blog content (HTML supported)
+- `author`: Author name
+- `author_overview`: Author biography
+- `meta_title`: SEO meta title
+- `meta_description`: SEO meta description
+- `keywords`: Comma-separated keywords
+- `cta`: Call-to-action text
+- `slug`: URL slug for the blog
+- `tags`: Comma-separated tags
+- `category`: Blog category
+- `image`: Main thumbnail image (file upload)
+- `thumbnail_image`: Blog thumbnail image (file upload)
+- `author_image`: Author profile image (file upload)
+- `internal_images`: Internal content images (multiple file uploads)
+
+**Example cURL Request:**
+```bash
+curl -X PATCH "http://localhost:8000/blogs/{blog_id}" \
+  -H "Authorization: Bearer {access_token}" \
+  -F "title=Updated Blog Title" \
+  -F "content=Updated blog content..." \
+  -F "author=Updated Author Name" \
+  -F "tags=updated,tag1,tag2" \
+  -F "image=@new-thumbnail.jpg"
+```
+
+**Response (200):**
 ```json
 {
-  "title": "Updated Title",
-  "content": "Updated content...",
-  "image_url": "https://new-thumbnail-url.jpg",
-  "internal_urls": ["url1", "url2"],
-  "author_image_url": "https://new-author-image.jpg",
-  "author_overview": "Updated author bio...",
-  "cta": "Updated call to action...",
-  "author": "Updated Author",
-  "tags_list": ["tag1", "tag2"],
-  "category": "Updated Category"
+  "message": "Blog updated successfully"
 }
 ```
 
@@ -406,6 +441,10 @@ Authorization: Bearer {access_token}
     "content": "Blog content...",
     "thumbnail": "https://...",
     "internal_urls": ["https://..."],
+    "meta_title": "SEO Meta Title",
+    "meta_description": "SEO Meta Description",
+    "keywords": ["keyword1", "keyword2"],
+    "slug": "blog-slug",
     "author": "Author Name",
     "author_images": "https://...",
     "author_overview": "Author bio...",
