@@ -4,12 +4,21 @@ from supabase import create_client
 import os
 from dotenv import load_dotenv
 from auth import get_current_user, check_admin_or_subadmin
-import cloudinary, cloudinary.uploader
+import cloudinary
+import cloudinary.uploader
 from cloudinary_utils import upload_image
 from fastapi import UploadFile, File, Form, Body, Depends
 from typing import List, Optional
 
 load_dotenv()
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("Cloudinary_CLOUD_NAME"),
+    api_key=os.getenv("Cloudinary_API_KEY"),
+    api_secret=os.getenv("Cloudinary_API_SECRET")
+)
+
 # Create router for blogs
 blog_router = APIRouter(prefix="/blogs", tags=["blogs"])
 
@@ -73,22 +82,29 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                     )
     
         #get authorimage url
-        author_image_url = None,
+        author_image_url = None
         if author_image:
             try:
                 file_content = await author_image.read()
                 author_image_url = upload_image(file_content)
             except Exception as e:
-                raise Exception
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Author image upload failed: {str(e)}"
+                )
             
         #Get thumbnail image url
-        thumbnail_image_url = None,
+        thumbnail_image_url = None
         if thumbnail_image:
             try:
                 file_content = await thumbnail_image.read()
                 thumbnail_image_url = upload_image(file_content)
             except Exception as e:
-                raise Exception   
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Thumbnail image upload failed: {str(e)}"
+                )
+        
         # Convert comma text to list
         tags_list = tags.split(",")
         keywords_list = [k.strip() for k in keywords.split(",")]
@@ -196,22 +212,28 @@ async def update_blog(blog_id: str,
                     )
     
         #get authorimage url
-        author_image_url = None,
+        author_image_url = None
         if author_image:
             try:
                 file_content = await author_image.read()
                 author_image_url = upload_image(file_content)
             except Exception as e:
-                raise Exception
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Author image upload failed: {str(e)}"
+                )
             
         #Get thumbnail image url
-        thumbnail_image_url = None,
+        thumbnail_image_url = None
         if thumbnail_image:
             try:
                 file_content = await thumbnail_image.read()
                 thumbnail_image_url = upload_image(file_content)
             except Exception as e:
-                raise Exception   
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Thumbnail image upload failed: {str(e)}"
+                )
 
         # Prepare update data - only include fields that are provided
         update_data = {}
