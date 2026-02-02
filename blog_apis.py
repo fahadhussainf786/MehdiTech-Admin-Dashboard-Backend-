@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from auth import get_current_user, check_admin_or_subadmin
 import cloudinary, cloudinary.uploader
 from cloudinary_utils import upload_image
-from fastapi import UploadFile, File, Form, Depends
+from fastapi import UploadFile, File, Form, Body, Depends
 from typing import List, Optional
 
 load_dotenv()
@@ -123,7 +123,6 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-
 # Get one blog api
 @blog_router.get("/{blog_id}")
 def get_blog(blog_id: str):
@@ -139,7 +138,6 @@ def get_blog(blog_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching blog: {str(e)}")
 
-
 # Get all blogs api
 @blog_router.get("/")
 def get_blogs():
@@ -152,24 +150,106 @@ def get_blogs():
 
 
 # Update blog api
-@blog_router.put("/{blog_id}")
-def update_blog(blog_id: str, blog: dict, user=Depends(get_current_user)):
+@blog_router.patch("/{blog_id}")
+async def update_blog(blog_id: str,
+                title: Optional[str] = Form(None),
+                content: Optional[str] = Form(None),
+                author: Optional[str] = Form(None),
+                author_overview: Optional[str] = Form(None),
+                meta_title: Optional[str] = Form(None),
+                meta_description: Optional[str] = Form(None),
+                keywords: Optional[str] = Form(None),
+                cta: Optional[str] = Form(None),
+                slug: Optional[str] = Form(None),
+                tags: Optional[str] = Form(None),
+                category: Optional[str] = Form(None),
+                image: Optional[UploadFile] = File(None),
+                thumbnail_image: Optional[UploadFile] = File(None),
+                author_image: Optional[UploadFile] = File(None),
+                internal_images: Optional[List[UploadFile]]= File(None),
+                user=Depends(get_current_user)):
     try:
         # check admin or subadmin
         check_admin_or_subadmin(user)
+        image_url = None  # default none
+        if image:
+            try:
+                file_content = await image.read()
+                image_url = upload_image(file_content)
+            except Exception as img_error:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Thumbnail image not found: {str(img_error)}",
+                )
+        # Store internal image urls
+        internal_urls = []
+        if internal_images:
+            for img in internal_images:
+                try:
+                    file_content = await img.read()
+                    url = upload_image(file_content)
+                    internal_urls.append(url)
+                except Exception as img_error:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Internal image upload failed: {str(img_error)}",
+                    )
+    
+        #get authorimage url
+        author_image_url = None,
+        if author_image:
+            try:
+                file_content = await author_image.read()
+                author_image_url = upload_image(file_content)
+            except Exception as e:
+                raise Exception
+            
+        #Get thumbnail image url
+        thumbnail_image_url = None,
+        if thumbnail_image:
+            try:
+                file_content = await thumbnail_image.read()
+                thumbnail_image_url = upload_image(file_content)
+            except Exception as e:
+                raise Exception   
+
+        # Prepare update data - only include fields that are provided
+        update_data = {}
+        
+        if title is not None:
+            update_data["title"] = title
+        if content is not None:
+            update_data["content"] = content
+        if image_url is not None:
+            update_data["thumbnail"] = image_url
+        if internal_urls:
+            update_data["internal_urls"] = internal_urls
+        if author_image_url is not None:
+            update_data["author_images"] = author_image_url
+        if author_overview is not None:
+            update_data["author_overview"] = author_overview
+        if meta_title is not None:
+            update_data["meta_title"] = meta_title
+        if meta_description is not None:
+            update_data["meta_description"] = meta_description
+        if keywords is not None:
+            update_data["keywords"] = [k.strip() for k in keywords.split(",")]
+        if slug is not None:
+            update_data["slug"] = slug
+        if thumbnail_image_url is not None:
+            update_data["thumbnail_image"] = thumbnail_image_url
+        if cta is not None:
+            update_data["cta"] = cta
+        if author is not None:
+            update_data["author"] = author
+        if tags is not None:
+            update_data["tags"] = tags.split(",")
+        if category is not None:
+            update_data["category"] = category
+
         #update blog in blogs table
-        supabase.table("blogs").update({
-            "title": blog["title"],
-            "content": blog["content"],
-            "thumbnail": blog["image_url"],
-            "internal_urls": blog["internal_urls"],
-            "author_images": blog["author_image_url"],
-            "author_overview": blog["author_overview"],
-            "cta": blog["cta"],
-            "author": blog["author"],
-            "tags": blog["tags_list"],
-            "category": blog["category"]
-        }).eq("id", blog_id).execute()
+        if update_data:
+            supabase.table("blogs").update(update_data).eq("id", blog_id).execute()
 
         return {"message": "Blog updated successfully"}
     except HTTPException:
