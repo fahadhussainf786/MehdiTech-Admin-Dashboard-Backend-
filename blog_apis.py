@@ -38,8 +38,10 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 author_overview:str = Form(...),
                 meta_title:str = Form(...),
                 meta_description:str = Form(...),
-                thumbnail: Optional[UploadFile] = File(None),
+                keywords:str = Form(...),
+                thumbnail_image: Optional[UploadFile] = File(None),
                 cta:str = Form(...),
+                slug:str = Form(...),
                 tags:str = Form(...),
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
@@ -78,18 +80,34 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 author_image_url = upload_image(file_content)
             except Exception as e:
                 raise Exception
+            
+        #Get thumbnail image url
+        thumbnail_image_url = None,
+        if thumbnail_image:
+            try:
+                file_content = await thumbnail_image.read()
+                thumbnail_image_url = upload_image(file_content)
+            except Exception as e:
+                raise Exception   
         # Convert comma text to list
         tags_list = tags.split(",")
+        keywords_list = [k.strip() for k in keywords.split(",")]
+
         try:
             supabase.table("blogs").insert({
                 "title": title,
                 "content": content,
                 "thumbnail": image_url,
                 "internal_urls": internal_urls,
+                "meta_title": meta_title,
+                "meta_description": meta_description,
+                "keywords": keywords_list,
+                "slug": slug,
                 "created_by": user.user.id,
                 "author": author,
                 "author_images": author_image_url,
                 "author_overview": author_overview,
+                "thumbnail_image": thumbnail_image_url,
                 "cta": cta,
                 "tags": tags_list,
                 "category": category
