@@ -45,12 +45,12 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 author:str = Form(...),
                 author_image: Optional[UploadFile] = File(None),
                 author_overview:str = Form(...),
-                meta_title:str = Form(...),
-                meta_description:str = Form(...),
-                keywords:str = Form(...),
+                meta_title: Optional[str]= Form(...),
+                meta_description:Optional[str] = Form(...),
+                keywords: Optional[str] = Form(None),
                 thumbnail_image: Optional[UploadFile] = File(None),
                 cta:str = Form(...),
-                slug:str = Form(...),
+                slug: Optional[str]= Form(...),
                 tags:str = Form(...),
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
@@ -163,7 +163,6 @@ def get_blogs():
         return {"blogs": blogs.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching blogs: {str(e)}")
-
 
 # Update blog api
 @blog_router.patch("/{blog_id}")
