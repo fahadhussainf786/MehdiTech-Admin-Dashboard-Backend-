@@ -409,6 +409,34 @@ curl -X PATCH "http://localhost:8000/blogs/{blog_id}" \
 }
 ```
 
+#### GET /blogs/slug/{slug}
+Retrieve a specific blog post by slug (URL-friendly identifier).
+
+**Response (200):**
+```json
+{
+  "blog": {
+    "id": "uuid",
+    "title": "Blog Title",
+    "content": "Blog content...",
+    "thumbnail": "https://...",
+    "internal_urls": ["https://..."],
+    "meta_title": "SEO Meta Title",
+    "meta_description": "SEO Meta Description",
+    "keywords": ["keyword1", "keyword2"],
+    "slug": "blog-slug",
+    "author": "Author Name",
+    "author_images": "https://...",
+    "author_overview": "Author bio...",
+    "cta": "Call to action text",
+    "tags": ["tag1", "tag2"],
+    "category": "Category",
+    "created_at": "2023-01-01T00:00:00Z",
+    "created_by": "user-id"
+  }
+}
+```
+
 #### DELETE /blogs/{blog_id}
 Delete a blog post (Admin/Subadmin only).
 
@@ -1127,6 +1155,28 @@ uvicorn main:app --reload
 - Use type hints for better code documentation
 - Implement proper error handling
 - Use async/await for I/O operations
+
+### Recent Improvements to blog_apis.py
+
+#### Enhanced Error Handling and Logging
+The blog API has been improved with comprehensive error handling and logging:
+
+- **Logging Configuration**: Added Python logging with INFO level for better debugging
+- **Supabase Client Initialization**: Wrapped in try-catch block with detailed error logging
+- **Improved Exception Handling**: Better error messages and status codes for debugging
+- **Cloudinary Integration**: Enhanced error handling for image upload operations
+
+#### New Features Added
+- **Slug-based Blog Retrieval**: Added `GET /blogs/slug/{slug}` endpoint for URL-friendly blog access
+- **Enhanced Form Data Support**: Improved PATCH endpoint to handle all optional fields properly
+- **Better File Upload Handling**: More robust image upload with proper error messages
+- **Role-based Access Control**: Enhanced admin/subadmin role checking with detailed error messages
+
+#### Error Handling Improvements
+- **Database Connection Errors**: Better handling of Supabase connection issues
+- **File Upload Errors**: More descriptive error messages for Cloudinary upload failures
+- **Authentication Errors**: Enhanced JWT token validation and role checking
+- **Global Exception Handler**: Improved error responses with CORS headers
 
 ### Testing
 Consider using:
