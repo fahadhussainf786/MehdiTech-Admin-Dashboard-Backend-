@@ -11,6 +11,7 @@ from jobs import jobs_router
 from applicant_job_apply import jobapply_router
 from blogs_seo import blog_seo_router
 from automated_email import email_router
+from dashboard_update import dashboard_router
 from auth import get_current_user, check_admin_or_subadmin
 import time
 import traceback
@@ -78,6 +79,7 @@ app.include_router(jobs_router)
 app.include_router(email_router)
 app.include_router(jobapply_router)
 app.include_router(blog_seo_router)
+app.include_router(dashboard_router)
 # Security
 security = HTTPBearer()
 
@@ -161,8 +163,3 @@ def admin_dashboard(user=Depends(get_current_user)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting admin: {str(e)}")
-
-
-# #Get user profile
-# @app.get("/profile")
-# def get_profile(user=Depends(get_current_user)):

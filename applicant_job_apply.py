@@ -14,7 +14,6 @@ supabase = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 )
-
 # user section Apply for a job
 @jobapply_router.post("/job_apply/{job_id}")
 async def apply_job(
@@ -23,15 +22,15 @@ async def apply_job(
     title: str = Form(...),
     name: str = Form(...),
     phone_number: str = Form(None),
-    resume: UploadFile = File(None)
+    resume: UploadFile = File(None),
+    user=Depends(get_current_user)
 ):
     try:
-       
         # Check if job exists
         job_check = supabase.table("jobs").select("id").eq("id", job_id).single().execute()
         if not job_check.data:
             raise HTTPException(status_code=404, detail="Job not found")
-        
+
         # Check if already applied
         existing = supabase.table("applications").select("id").eq("job_id", job_id).eq("user_email", user_email).execute()
         if existing.data:
@@ -40,7 +39,7 @@ async def apply_job(
         #resume optional
         resume_url = None #default none
         if resume:
-          file_name = f"{uuid.uuid4()}.pdf"
+          file_name = f"{uuid.uuid4()}.pdf"#generate random id and convert to string and adds 
 
         # we have to store resume in supabase storage
           supabase.storage.from_("resumes").upload(
@@ -55,13 +54,14 @@ async def apply_job(
         response = supabase.table("applications").insert({
             "job_id": job_id,
             "title": title,
+            "user_id": user.user.id,
             "user_email": user_email,
             "applicant_name": name,
             "resume_url": resume_url,
             "phone_number": phone_number,
             "status": "Applied"
         }).execute()
-        
+    
         return {
             "message": "Application submitted successfully",
             "application_id": response.data[0]["id"]

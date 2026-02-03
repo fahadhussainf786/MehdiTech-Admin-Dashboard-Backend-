@@ -154,6 +154,21 @@ def get_blog(blog_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching blog: {str(e)}")
 
+# get blog through slug
+@blog_router.get("/slug/{slug}")
+def get_blog(slug: str):
+    try:
+        # Fetch blog from blogs table using slug
+        blog = supabase.table("blogs").select("*").eq("slug", slug).execute()
+
+        if not blog.data:
+            raise HTTPException(status_code=404, detail="Blog not found")
+        return {"blog": blog.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching blog: {str(e)}")
+
 # Get all blogs api
 @blog_router.get("/")
 def get_blogs():
