@@ -1195,6 +1195,35 @@ gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
+### Railway Deployment
+
+This application is configured for deployment on Railway. To deploy:
+
+1. **Connect your repository** to Railway
+2. **Set environment variables** in Railway dashboard:
+   - `SUPABASE_URL`: Your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
+   - `Cloudinary_CLOUD_NAME`: Your Cloudinary cloud name
+   - `Cloudinary_API_KEY`: Your Cloudinary API key
+   - `Cloudinary_API_SECRET`: Your Cloudinary API secret
+   - `SMTP_EMAIL`: Your Gmail address for email notifications
+   - `SMTP_PASSWORD`: Your Gmail app password
+
+3. **Configure CORS origins** in Railway environment variables if needed
+4. **Deploy** and monitor logs for any issues
+
+#### Railway Troubleshooting
+
+**Common Issues on Railway:**
+- **500 Internal Server Error**: Check Railway logs for detailed error messages
+- **Database Connection Issues**: Verify Supabase URL and service role key are correct
+- **Image Upload Failures**: Ensure Cloudinary credentials are properly set
+- **CORS Errors**: Add your frontend domain to the CORS origins list
+
+**Railway Logs**: Use Railway dashboard to view real-time logs and debug issues
+
+**Environment Variables**: Ensure all required environment variables are set in Railway dashboard
+
 ### Environment Variables in Production
 Set all required environment variables in your production environment:
 - Use secure, production-specific credentials
