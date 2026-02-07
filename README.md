@@ -1,4 +1,4 @@
-# FastAPI Backend - Login, Signup, Blog & Job Management System
+# Fastapi Backend mehdi technologies - Login, Signup, Blogs, Jobs, applicants and Dashboard Management System
 
 A comprehensive FastAPI backend API providing user authentication, role-based access control, blog management with image uploads, job postings, and automated email notifications.
 
@@ -79,6 +79,12 @@ This FastAPI backend provides a complete solution for managing a content managem
 - Supabase for database and file storage
 - Secure file upload handling
 
+### 📊 Dashboard Management
+- Get total count of blogs
+- Get count of live job postings
+- Get count of pending job applicants
+- Admin statistics for dashboard overview
+
 ## 🛠️ Tech Stack
 
 ### Backend Framework
@@ -115,6 +121,7 @@ login signup and blog apis/
 ├── jobs.py                  # Job posting management endpoints
 ├── applicant_job_apply.py   # Job application system endpoints
 ├── automated_email.py       # Email notification system
+├── dashboard_update.py      # Dashboard statistics endpoints
 ├── cloudinary_utils.py      # Cloudinary configuration and utilities
 ├── requirements.txt         # Python dependencies
 ├── .env.example            # Environment variables template
@@ -763,6 +770,41 @@ Content-Type: application/json
 }
 ```
 
+### Dashboard Management Endpoints
+
+#### GET /dashboard/get_blogs
+Get total count of blogs in the system.
+
+**Response (200):**
+```json
+{
+  "message": "Found applicants",
+  "count": 15
+}
+```
+
+#### GET /dashboard/get_jobs
+Get total count of live job postings.
+
+**Response (200):**
+```json
+{
+  "message": "Found jobs",
+  "count": 8
+}
+```
+
+#### GET /dashboard/get_applicants
+Get total count of pending job applicants (status: "Applied").
+
+**Response (200):**
+```json
+{
+  "message": "Found applicants",
+  "count": 23
+}
+```
+
 ## 🔐 Authentication & Authorization
 
 ### Token-Based Authentication
@@ -868,20 +910,6 @@ CREATE TABLE email_templates (
 );
 ```
 
-#### blogs_seo
-Stores SEO metadata for blog posts.
-```sql
-CREATE TABLE blogs_seo (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  blog_id UUID REFERENCES blogs(id),
-  meta_title VARCHAR(255),
-  meta_description TEXT,
-  keywords TEXT[],
-  thumbnail TEXT,
-  slug VARCHAR(255) UNIQUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
 
 ### Supabase Storage Buckets
 

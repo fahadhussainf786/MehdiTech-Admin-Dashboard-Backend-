@@ -20,7 +20,7 @@ def dashboard_get_blogs():
         .select("id", count="exact")\
         .execute()
     
-    return("Found blogs", response.count)
+    return{"message": "Found applicants", "count": response.count}
 
 #get api for getting jobs
 @dashboard_router.get("/get_jobs")
@@ -30,7 +30,7 @@ def dashboard_get_jobs():
          .eq("status", "live")\
          .execute()
     
-    return("Found live jobs ", response.count)
+    return{"message": "Found jobs ","count": response.count}
 
 #Get pending applicants from applications
 @dashboard_router.get("/get_applicants")
@@ -39,4 +39,4 @@ def dashboard_get_applicants():
           .select("id", count= "exact")\
           .eq("status", "Applied")\
           .execute()
-    return ("Found applicants", response.count)
+    return {"message": "Found applicants","count": response.count}
