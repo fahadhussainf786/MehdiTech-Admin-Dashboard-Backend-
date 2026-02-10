@@ -9,8 +9,14 @@ import cloudinary.uploader
 from cloudinary_utils import upload_image
 from fastapi import UploadFile, File, Form, Body, Depends
 from typing import List, Optional
+from datetime import datetime, timedelta
+from pydantic import BaseModel
 
 load_dotenv()
+
+# Pydantic model for scheduling blogs
+class ScheduleBlogRequest(BaseModel):
+    publish_at: datetime
 
 # Configure Cloudinary
 cloudinary.config(
@@ -26,6 +32,7 @@ blog_router = APIRouter(prefix="/blogs", tags=["blogs"])
 supabase = create_client(
     os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 )
+
 # Setup bearer authentication
 security = HTTPBearer()
 
@@ -50,6 +57,7 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 keywords: Optional[str] = Form(None),
                 thumbnail_image: Optional[UploadFile] = File(None),
                 cta:str = Form(...),
+                status:str = Form(...),
                 slug: Optional[str]= Form(None),
                 tags:str = Form(...),
                 category: str = Form(...),
@@ -126,12 +134,14 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 "thumbnail_image": thumbnail_image_url,
                 "cta": cta,
                 "tags": tags_list,
-                "category": category
+                "category": category,
+                "status": status
             }).execute()
         except Exception as db_error:
             raise HTTPException(
                 status_code=400, detail=f"Failed to save blog: {str(db_error)}"
             )
+        
         # Return success message
         return {"message": "Blog created successfully"}
     except HTTPException:
@@ -139,6 +149,25 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
+#Post api for scheduling blogs
+@blog_router.patch("/schedule/{blog_id}")
+def schedule_blog(blog_id: str,
+                  request: ScheduleBlogRequest,
+                  user=Depends(get_current_user)):
+    try:
+
+        check_admin_or_subadmin(user)
+        supabase.table("blogs").update(
+            {
+                "status": "scheduled",
+                "publish_at": request.publish_at.isoformat()
+            }).eq("id", blog_id).execute()
+           
+        return {"message": "Blog scheduled successfully"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    
 # Get one blog api
 @blog_router.get("/{blog_id}")
 def get_blog(blog_id: str):
@@ -197,6 +226,7 @@ async def update_blog(blog_id: str,
                 thumbnail_image: Optional[UploadFile] = File(None),
                 author_image: Optional[UploadFile] = File(None),
                 internal_images: Optional[List[UploadFile]]= File(None),
+                status: Optional[str] = Form(None),
                 user=Depends(get_current_user)):
     try:
         # check admin or subadmin
@@ -276,6 +306,8 @@ async def update_blog(blog_id: str,
             update_data["thumbnail_image"] = thumbnail_image_url
         if cta is not None:
             update_data["cta"] = cta
+        if status is not None:
+            update_data["status"] = status
         if author is not None:
             update_data["author"] = author
         if tags is not None:
@@ -292,7 +324,6 @@ async def update_blog(blog_id: str,
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating blog: {str(e)}")
-
 
 # Delete blog api
 @blog_router.delete("/{blog_id}")
