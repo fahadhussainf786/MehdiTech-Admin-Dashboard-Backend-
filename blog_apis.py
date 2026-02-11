@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 from supabase import create_client
 import os
 from dotenv import load_dotenv
@@ -9,8 +9,10 @@ import cloudinary.uploader
 from cloudinary_utils import upload_image
 from fastapi import UploadFile, File, Form, Body, Depends
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from pydantic import BaseModel
+from apscheduler.schedulers.background import BackgroundScheduler
+import pytz
 
 load_dotenv()
 
@@ -35,6 +37,35 @@ supabase = create_client(
 
 # Setup bearer authentication
 security = HTTPBearer()
+
+# Auto-publish scheduler
+def auto_publish_blogs():
+    """Check every minute - if publish time arrived, change status to live"""
+    try:
+        blogs = supabase.table("blogs").select("id, publish_at").eq("status", "scheduled").execute()
+        pst = pytz.timezone('Asia/Karachi')
+        now = datetime.now(pst)
+        
+        for blog in blogs.data:
+            if blog.get("publish_at"):
+                publish_time = datetime.fromisoformat(blog["publish_at"].replace('Z', '+00:00'))
+                publish_time_pst = publish_time.astimezone(pst)
+                if publish_time_pst <= now:
+                    supabase.table("blogs").update({"status": "live"}).eq("id", blog["id"]).execute()
+    
+    except Exception as e:
+        print(f"Scheduler error: {str(e)}")
+
+scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Karachi'))
+
+def start_scheduler():
+    if not scheduler.running:
+        scheduler.add_job(auto_publish_blogs, 'interval', minutes=1)
+        scheduler.start()
+
+def shutdown_scheduler():
+    if scheduler.running:
+        scheduler.shutdown()
 
 # Make api for uploading image
 @blog_router.post("/uploadimage")
@@ -149,7 +180,7 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-#Post api for scheduling blogs
+#scheduling blogs api
 @blog_router.patch("/schedule/{blog_id}")
 def schedule_blog(blog_id: str,
                   request: ScheduleBlogRequest,
@@ -160,14 +191,15 @@ def schedule_blog(blog_id: str,
         supabase.table("blogs").update(
             {
                 "status": "scheduled",
-                "publish_at": request.publish_at.isoformat()
+                "publish_at": request.publish_at.isoformat()#use isoformat for datetime
+                            
             }).eq("id", blog_id).execute()
-           
-        return {"message": "Blog scheduled successfully"}
+        
+        return{"message": "Blogs scheduled"}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-    
+
 # Get one blog api
 @blog_router.get("/{blog_id}")
 def get_blog(blog_id: str):

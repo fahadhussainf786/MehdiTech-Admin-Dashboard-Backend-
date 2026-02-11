@@ -31,12 +31,13 @@ This FastAPI backend provides a complete solution for managing a content managem
 
 - **User Authentication**: Secure signup and login with JWT tokens
 - **Role-Based Access Control**: Admin, Subadmin, and User roles
-- **Blog Management**: Full CRUD operations with image uploads
+- **Blog Management**: Full CRUD operations with image uploads and automatic scheduling
 - **Job Postings**: Create, manage, and track job listings
 - **Job Applications**: User application system with resume uploads
 - **Automated Emails**: Status update notifications via SMTP
 - **Cloud Storage**: Image uploads to Cloudinary
 - **File Storage**: Resume uploads to Supabase storage
+- **Background Scheduler**: Automatic blog publishing based on scheduled times (Pakistan timezone)
 
 ## ✨ Features
 
@@ -55,6 +56,9 @@ This FastAPI backend provides a complete solution for managing a content managem
 - Author image upload and management
 - Author overview and call-to-action (CTA) fields
 - Edit blog details endpoint for frontend forms
+- **🔄 Automatic Blog Scheduling**: Schedule blogs for future publishing with automatic status updates
+- **⏱️ Background Scheduler**: Runs every minute to check and publish scheduled blogs in Pakistan timezone
+- Scheduled blogs automatically become "live" when publish time arrives (no manual action needed)
 
 ### 💼 Job Management
 - Create and manage job postings
@@ -110,6 +114,8 @@ This FastAPI backend provides a complete solution for managing a content managem
 - **Email-validator** - Email validation utilities
 - **Python-http-client** - HTTP client for email services
 - **Resend** - Email service integration
+- **APScheduler** - Background task scheduling for automatic blog publishing
+- **Pytz** - Timezone support for Pakistan Standard Time
 
 ## 📁 Project Structure
 
@@ -299,6 +305,7 @@ Content-Type: multipart/form-data
 - `thumbnail_image`: Blog thumbnail image (optional)
 - `cta`: Call-to-action text (required)
 - `slug`: URL slug for the blog (Optional)
+- `status`: insert the status to draft or live etc
 - `tags`: Comma-separated tags (required)
 - `category`: Blog category (required)
 - `internal_images`: Internal content images (optional, multiple)
@@ -396,6 +403,7 @@ Content-Type: multipart/form-data
 - `image`: Main thumbnail image (file upload)
 - `thumbnail_image`: Blog thumbnail image (file upload)
 - `author_image`: Author profile image (file upload)
+- `status`: change the status to draft or live
 - `internal_images`: Internal content images (multiple file uploads)
 
 **Example cURL Request:**
@@ -459,6 +467,72 @@ Authorization: Bearer {access_token}
 }
 ```
 
+#### PATCH /blogs/schedule/{blog_id}
+Schedule a blog post for future publishing (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "publish_at": "2026-03-11T18:00:00"
+}
+```
+
+**Parameters:**
+- `publish_at`: ISO 8601 formatted datetime string when the blog should be published (required)
+
+**Response (200):**
+```json
+{
+  "message": "Blog scheduled successfully"
+}
+```
+
+**Example cURL Request:**
+```bash
+curl -X PATCH "http://localhost:8000/blogs/schedule/{blog_id}" \
+  -H "Authorization: Bearer {access_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publish_at": "2026-03-11T18:00:00"
+  }'
+```
+
+**Status Updates:**
+- Blog status is automatically set to "scheduled" when this endpoint is called
+- Database field `publish_at` stores the scheduled publication datetime
+
+#### PATCH /blogs/{blog_id}/publish
+Publish a scheduled blog post and change its status to "live" (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Blog published successfully"
+}
+```
+
+**Example cURL Request:**
+```bash
+curl -X PATCH "http://localhost:8000/blogs/{blog_id}/publish" \
+  -H "Authorization: Bearer {access_token}"
+```
+
+**Status Updates:**
+- Blog status is changed from "scheduled" to "live"
+- Blog becomes publicly accessible immediately
+- Use this after the scheduled publish date has passed
+
 #### GET /blogs/{blog_id}/edit
 Get blog details for editing (Admin/Subadmin only).
 
@@ -491,6 +565,72 @@ Authorization: Bearer {access_token}
   }
 }
 ```
+
+## 🔄 Background Blog Scheduler
+
+The application includes an automatic blog publishing scheduler that runs in the background. This feature requires **APScheduler** and **pytz** packages.
+
+### How It Works
+
+**Scheduler Configuration** (`blog_apis.py`):
+- Runs every **1 minute** to check for scheduled blogs
+- Uses **Pakistan Standard Time (Asia/Karachi)** timezone
+- Automatically publishes blogs when their scheduled time arrives
+
+### Scheduler Functions
+
+#### `auto_publish_blogs()`
+Main scheduler function that:
+1. Fetches all blogs with `status = "scheduled"`
+2. Converts stored publish times to Pakistan timezone
+3. Compares publish time with current time
+4. Updates status to `"live"` if publish time has arrived
+5. Logs errors with detailed messages
+
+#### `start_scheduler()`
+- Called on application startup (in `main.py`)
+- Initializes the background scheduler
+- Adds the auto-publish job with 1-minute interval
+- Prevents duplicate scheduler instances
+
+#### `shutdown_scheduler()`
+- Called on application shutdown (in `main.py`)
+- Gracefully stops the scheduler
+- Cleans up background threads
+
+### Example Workflow
+
+1. **Admin schedules a blog:**
+   ```
+   PATCH /blogs/{blog_id}/schedule
+   {
+     "publish_at": "2026-03-11T18:00:00"
+   }
+   ```
+   - Status set to `"scheduled"`
+   - `publish_at` stored as ISO 8601 string
+
+2. **Scheduler runs automatically:**
+   - Every minute, checks if `publish_at <= current time`
+   - When time arrives → Status changes to `"live"`
+   - Blog automatically goes live without manual intervention
+
+### Requirements for Scheduler
+
+- ✅ `apscheduler` package installed
+- ✅ `pytz` package installed  
+- ✅ Scheduler started/shutdown in `main.py` (startup/shutdown events)
+- ✅ Datetime in ISO 8601 format: `"2026-03-11T18:00:00"`
+- ✅ All times treated as Pakistan Standard Time
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Scheduler not running | Verify `start_scheduler()` called in `main.py` startup event |
+| Blogs not publishing | Check blog `status` is exactly `"scheduled"` |
+| Wrong timezone | Verify `publish_at` datetime is correct for Pakistan time |
+| Package errors | Install: `pip install apscheduler pytz` |
 
 ### Job Management Endpoints
 
@@ -1205,6 +1345,43 @@ The blog API has been improved with comprehensive error handling and logging:
 - **File Upload Errors**: More descriptive error messages for Cloudinary upload failures
 - **Authentication Errors**: Enhanced JWT token validation and role checking
 - **Global Exception Handler**: Improved error responses with CORS headers
+
+### main.py - Application Initialization and Scheduler Management
+
+The `main.py` file handles application setup and lifecycle management with special focus on the blog scheduler:
+
+#### Application Startup
+```python
+@app.on_event("startup")
+async def app_startup():
+    start_scheduler()
+```
+- **Purpose**: Initializes the background scheduler when the application starts
+- **Timing**: Runs once immediately when `uvicorn main:app --reload` is executed
+- **Action**: Calls `start_scheduler()` from `blog_apis.py` to begin checking scheduled blogs every minute
+
+#### Application Shutdown
+```python
+@app.on_event("shutdown")
+async def app_shutdown():
+    shutdown_scheduler()
+```
+- **Purpose**: Gracefully stops the background scheduler when the application shuts down
+- **Timing**: Runs when server is stopped (Ctrl+C or deployment termination)
+- **Action**: Calls `shutdown_scheduler()` from `blog_apis.py` to clean up scheduler threads
+
+#### Key Features in main.py
+- **CORS Configuration**: Allows requests from approved frontend domains
+- **Proxy Middleware**: Handles HTTPS headers from reverse proxies
+- **Global Exception Handler**: Catches and logs all unhandled errors
+- **Multiple Router Integration**: Loads all API routers (blogs, jobs, applications, etc.)
+
+#### Router Imports with Scheduler Support
+```python
+from blog_apis import blog_router, start_scheduler, shutdown_scheduler
+```
+- Imports blog router and scheduler functions from `blog_apis.py`
+- Essential for application to manage background scheduler lifecycle
 
 ### Testing
 Consider using:

@@ -9,3 +9,5 @@ pydantic-core
 email-validator
 python-http-client
 resend
+apscheduler
+pytz

@@ -6,7 +6,8 @@ from supabase import create_client
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
-from blog_apis import blog_router  # Import routers
+#Import all routers
+from blog_apis import blog_router, start_scheduler, shutdown_scheduler
 from jobs import jobs_router
 from applicant_job_apply import jobapply_router
 from blogs_seo import blog_seo_router
@@ -18,7 +19,15 @@ import traceback
 
 app = FastAPI()
 
-# Cors for giving access to frontend access
+@app.on_event("startup")
+async def app_startup():
+    start_scheduler()
+
+@app.on_event("shutdown")
+async def app_shutdown():
+    shutdown_scheduler()
+
+# Cors for giving access to frontend
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
