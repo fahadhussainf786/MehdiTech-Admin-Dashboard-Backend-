@@ -59,6 +59,7 @@ This FastAPI backend provides a complete solution for managing a content managem
 - **🔄 Automatic Blog Scheduling**: Schedule blogs for future publishing with automatic status updates
 - **⏱️ Background Scheduler**: Runs every minute to check and publish scheduled blogs in Pakistan timezone
 - Scheduled blogs automatically become "live" when publish time arrives (no manual action needed)
+- **🔗 Auto-Generated URL Slugs**: Slugs are automatically created from blog titles (lowercase with hyphens between words)
 
 ### 💼 Job Management
 - Create and manage job postings
@@ -304,12 +305,15 @@ Content-Type: multipart/form-data
 - `keywords`: Comma-separated keywords (Optional)
 - `thumbnail_image`: Blog thumbnail image (optional)
 - `cta`: Call-to-action text (required)
-- `slug`: URL slug for the blog (Optional)
-- `status`: insert the status to draft or live etc
 - `tags`: Comma-separated tags (required)
 - `category`: Blog category (required)
 - `internal_images`: Internal content images (optional, multiple)
 - `image`: Main thumbnail image (optional)
+- `slug`: URL slug for the blog (Optional - auto-generated from title)
+- `status`: insert the status to draft or live etc
+
+**Slug Generation:**
+The slug is automatically generated from the blog title by converting it to lowercase and replacing spaces with hyphens. For example, "Why UX Can Make Or Break" becomes "why-ux-can-make-or-break". Any manually provided slug value is ignored.
 
 **Response (200):**
 ```json
@@ -397,7 +401,7 @@ Content-Type: multipart/form-data
 - `meta_description`: SEO meta description
 - `keywords`: Comma-separated keywords
 - `cta`: Call-to-action text
-- `slug`: URL slug for the blog
+- `slug`: URL slug for the blog (auto-generated from title if title is updated)
 - `tags`: Comma-separated tags
 - `category`: Blog category
 - `image`: Main thumbnail image (file upload)

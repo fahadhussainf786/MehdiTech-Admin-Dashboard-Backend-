@@ -89,7 +89,6 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 thumbnail_image: Optional[UploadFile] = File(None),
                 cta:str = Form(...),
                 status:str = Form(...),
-                slug: Optional[str]= Form(None),
                 tags:str = Form(...),
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
@@ -119,7 +118,7 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                         status_code=400,
                         detail=f"Internal image upload failed: {str(img_error)}",
                     )
-    
+        
         #get authorimage url
         author_image_url = None
         if author_image:
@@ -148,6 +147,9 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
         tags_list = tags.split(",")
         keywords_list = [k.strip() for k in keywords.split(",")] if keywords else None
 
+        #convert title to lowercase and replace spaces with hyphens for slug
+        slug_url = title.lower().replace(" ", "-")
+
         try:
             supabase.table("blogs").insert({
                 "title": title,
@@ -157,7 +159,7 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 "meta_title": meta_title,
                 "meta_description": meta_description,
                 "keywords": keywords_list,
-                "slug": slug,
+                "slug": slug_url,
                 "created_by": user.user.id,
                 "author": author,
                 "author_images": author_image_url,
