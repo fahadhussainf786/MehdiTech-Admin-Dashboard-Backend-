@@ -16,15 +16,17 @@ import pytz
 
 load_dotenv()
 
-#Publish_at work as 
+
+# Publish_at work as
 class ScheduleBlogRequest(BaseModel):
     publish_at: datetime
+
 
 # Configure Cloudinary
 cloudinary.config(
     cloud_name=os.getenv("Cloudinary_CLOUD_NAME"),
     api_key=os.getenv("Cloudinary_API_KEY"),
-    api_secret=os.getenv("Cloudinary_API_SECRET")
+    api_secret=os.getenv("Cloudinary_API_SECRET"),
 )
 
 # Create router for blogs
@@ -38,34 +40,48 @@ supabase = create_client(
 # Setup bearer authentication
 security = HTTPBearer()
 
+
 # Auto-publish scheduler
 def auto_publish_blogs():
     """Check every minute - if publish time arrived, change status to live"""
     try:
-        blogs = supabase.table("blogs").select("id, publish_at").eq("status", "scheduled").execute()
-        pst = pytz.timezone('Asia/Karachi')
+        blogs = (
+            supabase.table("blogs")
+            .select("id, publish_at")
+            .eq("status", "scheduled")
+            .execute()
+        )
+        pst = pytz.timezone("Asia/Karachi")
         now = datetime.now(pst)
 
         for blog in blogs.data:
             if blog.get("publish_at"):
-                publish_time = datetime.fromisoformat(blog["publish_at"].replace('Z', '+00:00'))
+                publish_time = datetime.fromisoformat(
+                    blog["publish_at"].replace("Z", "+00:00")
+                )
                 publish_time_pst = publish_time.astimezone(pst)
                 if publish_time_pst <= now:
-                    supabase.table("blogs").update({"status": "live"}).eq("id", blog["id"]).execute()
+                    supabase.table("blogs").update({"status": "live"}).eq(
+                        "id", blog["id"]
+                    ).execute()
 
     except Exception as e:
         print(f"Scheduler error: {str(e)}")
 
-scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Karachi'))
+
+scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Karachi"))
+
 
 def start_scheduler():
     if not scheduler.running:
-        scheduler.add_job(auto_publish_blogs, 'interval', minutes= 1)
+        scheduler.add_job(auto_publish_blogs, "interval", minutes=1)
         scheduler.start()
+
 
 def shutdown_scheduler():
     if scheduler.running:
         scheduler.shutdown()
+
 
 # Make api for uploading image
 @blog_router.post("/uploadimage")
@@ -76,24 +92,28 @@ async def upload_image_endpoint(image_file: UploadFile = File(None)):
     response = cloudinary.uploader.upload(file_content)
     return {"url": response.get("secure_url")}
 
-#create_blog api
+
+# create_blog api
 @blog_router.post("/")
-async def create_blog(title:str = Form(...),#Parameters that passes below supabase table
-                content:str = Form(...),
-                author:str = Form(...),
-                author_image: Optional[UploadFile] = File(None),
-                author_overview:str = Form(...),
-                meta_title: Optional[str]= Form(None),
-                meta_description:Optional[str] = Form(None),
-                keywords: Optional[str] = Form(None),
-                thumbnail_image: Optional[UploadFile] = File(None),
-                cta:str = Form(...),
-                status:str = Form(...),
-                tags:str = Form(...),
-                category: str = Form(...),
-                internal_images: Optional[List[UploadFile]]= File(None),
-                publish_at: Optional[datetime] = Form(None),
-                image: Optional[UploadFile] = File(None), user=Depends(get_current_user)):
+async def create_blog(
+    title: str = Form(...),  # Parameters that passes below supabase table
+    content: str = Form(...),
+    author: str = Form(...),
+    author_image: Optional[UploadFile] = File(None),
+    author_overview: str = Form(...),
+    meta_title: Optional[str] = Form(None),
+    meta_description: Optional[str] = Form(None),
+    keywords: Optional[str] = Form(None),
+    thumbnail_image: Optional[UploadFile] = File(None),
+    cta: str = Form(...),
+    status: str = Form(...),
+    tags: str = Form(...),
+    category: str = Form(...),
+    internal_images: Optional[List[UploadFile]] = File(None),
+    publish_at: Optional[datetime] = Form(None),
+    image: Optional[UploadFile] = File(None),
+    user=Depends(get_current_user),
+):
     try:
         check_admin_or_subadmin(user)
         image_url = None  # default none
@@ -119,8 +139,8 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                         status_code=400,
                         detail=f"Internal image upload failed: {str(img_error)}",
                     )
-        
-        #get authorimage url
+
+        # get authorimage url
         author_image_url = None
         if author_image:
             try:
@@ -128,11 +148,10 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 author_image_url = upload_image(file_content)
             except Exception as e:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Author image upload failed: {str(e)}"
+                    status_code=400, detail=f"Author image upload failed: {str(e)}"
                 )
-            
-        #Get thumbnail image url
+
+        # Get thumbnail image url
         thumbnail_image_url = None
         if thumbnail_image:
             try:
@@ -140,67 +159,73 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 thumbnail_image_url = upload_image(file_content)
             except Exception as e:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Thumbnail image upload failed: {str(e)}"
+                    status_code=400, detail=f"Thumbnail image upload failed: {str(e)}"
                 )
-            
+
         # Convert comma text to list
         tags_list = tags.split(",")
         keywords_list = [k.strip() for k in keywords.split(",")] if keywords else None
 
-        #convert title to lowercase and replace spaces with hyphens for slug
+        # convert title to lowercase and replace spaces with hyphens for slug
         slug_url = title.lower().replace(" ", "-")
-        #we have to perform auto_publish_blogs
+        # we have to perform auto_publish_blogs
         if status == "scheduled" and publish_at:
             auto_publish_blogs()
 
-        #now if status is scheduled and publish_at is provided then make blog status scheduled
+        # now if status is scheduled and publish_at is provided then make blog status scheduled
         if status == "Scheduled" and publish_at:
             status = "Scheduled"
         elif status == "Scheduled" and not publish_at:
-            raise HTTPException(status_code=400, detail="Publish time required for scheduled blogs")
-        elif publish_at and publish_at < datetime.now():
-            raise HTTPException(status_code=400, detail="Publish time must be in the future for scheduled blogs")
-        #if status is live then publish_at should be null
+            raise HTTPException(
+                status_code=400, detail="Publish time required for scheduled blogs"
+            )
+        elif publish_at and publish_at < datetime.now(pytz.timezone("Asia/Karachi")):
+            raise HTTPException(
+                status_code=400,
+                detail="Publish time must be in the future for scheduled blogs",
+            )
+        # if status is live then publish_at should be null
         elif status == "live":
             publish_at = None
-            
-#here we can use logic in tables
-        try:
-            supabase.table("blogs").insert({
-                "title": title,
-                "content": content,
-                "thumbnail": image_url,
-                "internal_urls": internal_urls,
-                "meta_title": meta_title,
-                "meta_description": meta_description,
-                "keywords": keywords_list,
-                "slug": slug_url,
-                "created_by": user.user.id,
-                "author": author,
-                "author_images": author_image_url,
-                "author_overview": author_overview,
-                "thumbnail_image": thumbnail_image_url,
-                "cta": cta,
-                "tags": tags_list,
-                "category": category,
-                "status": status,
-                "publish_at": publish_at.isoformat() if publish_at else None
 
-            }).execute()
+        # here we can use logic in tables
+        try:
+            supabase.table("blogs").insert(
+                {
+                    "title": title,
+                    "content": content,
+                    "thumbnail": image_url,
+                    "internal_urls": internal_urls,
+                    "meta_title": meta_title,
+                    "meta_description": meta_description,
+                    "keywords": keywords_list,
+                    "slug": slug_url,
+                    "created_by": user.user.id,
+                    "author": author,
+                    "author_images": author_image_url,
+                    "author_overview": author_overview,
+                    "thumbnail_image": thumbnail_image_url,
+                    "cta": cta,
+                    "tags": tags_list,
+                    "category": category,
+                    "status": status,
+                    "publish_at": publish_at.isoformat() if publish_at else None,
+                }
+            ).execute()
         except Exception as db_error:
             raise HTTPException(
                 status_code=400, detail=f"Failed to save blog: {str(db_error)}"
             )
-        
+
         # Return success message
         return {"message": "Blog created successfully"}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-    
-#For the moment we are not using this api we are using in create and update api
+
+
+# For the moment we are not using this api we are using in create and update api
 # #scheduling blogs api
 # @blog_router.patch("/schedule/{blog_id}")
 # def schedule_blog(blog_id: str,
@@ -213,36 +238,50 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
 #             {
 #                 "status": "scheduled",
 #                 "publish_at": request.publish_at.isoformat()#use isoformat for datetime
-                            
+
 #             }).eq("id", blog_id).execute()
-        
+
 #         return{"message": "Blogs scheduled"}
-    
+
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
 
 # Get one blog api
 @blog_router.get("/{blog_id}")
 def get_blog(blog_id: str):
     try:
         # Fetch blog from blogs table
-        blog = supabase.table("blogs").select("*").eq("id", blog_id).order("created_at", desc=True).execute()
+        blog = (
+            supabase.table("blogs")
+            .select("*")
+            .eq("id", blog_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
 
         if not blog.data:
             raise HTTPException(status_code=404, detail="Blog not found")
         return {"blog": blog.data[0]}
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching blog: {str(e)}")
+
 
 # get blog through slug
 @blog_router.get("/slug/{slug}")
 def get_blog(slug: str):
     try:
         # Fetch blog from blogs table using slug
-        blog = supabase.table("blogs").select("*").eq("slug", slug).order("created_at", desc=True).execute()
+        blog = (
+            supabase.table("blogs")
+            .select("*")
+            .eq("slug", slug)
+            .order("created_at", desc=True)
+            .execute()
+        )
 
         if not blog.data:
             raise HTTPException(status_code=404, detail="Blog not found")
@@ -252,37 +291,43 @@ def get_blog(slug: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching blog: {str(e)}")
 
+
 # Get all blogs api
 @blog_router.get("/")
 def get_blogs():
     try:
         # Fetch all blogs from blogs table
-        blogs = supabase.table("blogs").select("*").order("created_at", desc=True).execute()
+        blogs = (
+            supabase.table("blogs").select("*").order("created_at", desc=True).execute()
+        )
         return {"blogs": blogs.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching blogs: {str(e)}")
 
+
 # Update blog api
 @blog_router.patch("/{blog_id}")
-async def update_blog(blog_id: str,
-                title: Optional[str] = Form(None),
-                content: Optional[str] = Form(None),
-                author: Optional[str] = Form(None),
-                author_overview: Optional[str] = Form(None),
-                meta_title: Optional[str] = Form(None),
-                meta_description: Optional[str] = Form(None),
-                keywords: Optional[str] = Form(None),
-                cta: Optional[str] = Form(None),
-                slug: Optional[str] = Form(None),
-                tags: Optional[str] = Form(None),
-                category: Optional[str] = Form(None),
-                image: Optional[UploadFile] = File(None),
-                thumbnail_image: Optional[UploadFile] = File(None),
-                author_image: Optional[UploadFile] = File(None),
-                internal_images: Optional[List[UploadFile]]= File(None),
-                status: Optional[str] = Form(None),
-                publish_at: Optional[datetime] = Form(None),
-                user=Depends(get_current_user)):
+async def update_blog(
+    blog_id: str,
+    title: Optional[str] = Form(None),
+    content: Optional[str] = Form(None),
+    author: Optional[str] = Form(None),
+    author_overview: Optional[str] = Form(None),
+    meta_title: Optional[str] = Form(None),
+    meta_description: Optional[str] = Form(None),
+    keywords: Optional[str] = Form(None),
+    cta: Optional[str] = Form(None),
+    slug: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
+    thumbnail_image: Optional[UploadFile] = File(None),
+    author_image: Optional[UploadFile] = File(None),
+    internal_images: Optional[List[UploadFile]] = File(None),
+    status: Optional[str] = Form(None),
+    publish_at: Optional[datetime] = Form(None),
+    user=Depends(get_current_user),
+):
     try:
         # check admin or subadmin
         check_admin_or_subadmin(user)
@@ -309,8 +354,8 @@ async def update_blog(blog_id: str,
                         status_code=400,
                         detail=f"Internal image upload failed: {str(img_error)}",
                     )
-    
-        #get authorimage url
+
+        # get authorimage url
         author_image_url = None
         if author_image:
             try:
@@ -318,11 +363,10 @@ async def update_blog(blog_id: str,
                 author_image_url = upload_image(file_content)
             except Exception as e:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Author image upload failed: {str(e)}"
+                    status_code=400, detail=f"Author image upload failed: {str(e)}"
                 )
-            
-        #Get thumbnail image url
+
+        # Get thumbnail image url
         thumbnail_image_url = None
         if thumbnail_image:
             try:
@@ -330,14 +374,13 @@ async def update_blog(blog_id: str,
                 thumbnail_image_url = upload_image(file_content)
             except Exception as e:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Thumbnail image upload failed: {str(e)}"
+                    status_code=400, detail=f"Thumbnail image upload failed: {str(e)}"
                 )
         #
 
         # Prepare update data - only include fields that are provided
         update_data = {}
-        #if there is already something in the field then only update otherwise keep it as it is
+        # if there is already something in the field then only update otherwise keep it as it is
         if title is not None:
             update_data["title"] = title
         if content is not None:
@@ -373,7 +416,7 @@ async def update_blog(blog_id: str,
         if publish_at:
             update_data["publish_at"] = publish_at.isoformat()
 
-        #update blog in blogs table
+        # update blog in blogs table
         if update_data:
             supabase.table("blogs").update(update_data).eq("id", blog_id).execute()
 
@@ -382,6 +425,7 @@ async def update_blog(blog_id: str,
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating blog: {str(e)}")
+
 
 # Delete blog api
 @blog_router.delete("/{blog_id}")
