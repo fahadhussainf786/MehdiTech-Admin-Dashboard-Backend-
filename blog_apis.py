@@ -270,6 +270,7 @@ async def update_blog(blog_id: str,
                 author_image: Optional[UploadFile] = File(None),
                 internal_images: Optional[List[UploadFile]]= File(None),
                 status: Optional[str] = Form(None),
+                publish_at: Optional[datetime] = Form(None),
                 user=Depends(get_current_user)):
     try:
         # check admin or subadmin
@@ -321,6 +322,7 @@ async def update_blog(blog_id: str,
                     status_code=400,
                     detail=f"Thumbnail image upload failed: {str(e)}"
                 )
+        #
 
         # Prepare update data - only include fields that are provided
         update_data = {}
@@ -357,6 +359,8 @@ async def update_blog(blog_id: str,
             update_data["tags"] = tags.split(",")
         if category is not None:
             update_data["category"] = category
+        if publish_at:
+            update_data["publish_at"] = publish_at.isoformat()
 
         #update blog in blogs table
         if update_data:

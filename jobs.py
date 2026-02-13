@@ -28,10 +28,11 @@ def create_job(job: dict, user=Depends(get_current_user)):
         "qualifications": job["qualifications"],
         "salary_range": job["salary_range"],  # optional # optional
         "location": job["location"],  # optional
-        "status": "live"  # default state live
+        "status": job["status"]
     }).execute()
+
     return response.data
- #use exception
+ 
  except HTTPException:
         raise
  except Exception as e:
