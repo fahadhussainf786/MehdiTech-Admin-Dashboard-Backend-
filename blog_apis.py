@@ -189,33 +189,34 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-
-#scheduling blogs api
-@blog_router.patch("/schedule/{blog_id}")
-def schedule_blog(blog_id: str,
-                  request: ScheduleBlogRequest,
-                  user=Depends(get_current_user)):
-    try:
-
-        check_admin_or_subadmin(user)
-        supabase.table("blogs").update(
-            {
-                "status": "scheduled",
-                "publish_at": request.publish_at.isoformat()#use isoformat for datetime
-                            
-            }).eq("id", blog_id).execute()
-        
-        return{"message": "Blogs scheduled"}
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+#For the moment we are not using this api we are using in create and update api
+# #scheduling blogs api
+# @blog_router.patch("/schedule/{blog_id}")
+# def schedule_blog(blog_id: str,
+#                   request: ScheduleBlogRequest,
+#                   user=Depends(get_current_user)):
+#     try:
+
+#         check_admin_or_subadmin(user)
+#         supabase.table("blogs").update(
+#             {
+#                 "status": "scheduled",
+#                 "publish_at": request.publish_at.isoformat()#use isoformat for datetime
+                            
+#             }).eq("id", blog_id).execute()
+        
+#         return{"message": "Blogs scheduled"}
+    
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 # Get one blog api
 @blog_router.get("/{blog_id}")
 def get_blog(blog_id: str):
     try:
         # Fetch blog from blogs table
-        blog = supabase.table("blogs").select("*").eq("id", blog_id).execute()
+        blog = supabase.table("blogs").select("*").eq("id", blog_id).order("created_at", desc=True).execute()
 
         if not blog.data:
             raise HTTPException(status_code=404, detail="Blog not found")
@@ -231,7 +232,7 @@ def get_blog(blog_id: str):
 def get_blog(slug: str):
     try:
         # Fetch blog from blogs table using slug
-        blog = supabase.table("blogs").select("*").eq("slug", slug).execute()
+        blog = supabase.table("blogs").select("*").eq("slug", slug).order("created_at", desc=True).execute()
 
         if not blog.data:
             raise HTTPException(status_code=404, detail="Blog not found")
@@ -246,7 +247,7 @@ def get_blog(slug: str):
 def get_blogs():
     try:
         # Fetch all blogs from blogs table
-        blogs = supabase.table("blogs").select("*").execute()
+        blogs = supabase.table("blogs").select("*").order("created_at", desc=True).execute()
         return {"blogs": blogs.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching blogs: {str(e)}")

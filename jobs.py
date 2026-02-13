@@ -41,18 +41,18 @@ def create_job(job: dict, user=Depends(get_current_user)):
 #Get one api
 @jobs_router.get("/jobs/{job_id}")
 def get_job(job_id: str):
-
-    response = supabase.table("jobs").select("*").eq("id", job_id).execute()
+    #sort jobs by created_at in descending order
+    response = supabase.table("jobs").select("*").eq("id", job_id).order("created_at", desc=True).execute()
     return response.data
 
 #Get all jobs api
-@jobs_router.get("/jobs")
+@jobs_router.get("/all_jobs")
 def get_all_jobs():
- 
-    response = supabase.table("jobs").select("*").execute()
+
+    response = supabase.table("jobs").select("*").order("created_at", desc=True).execute()
     return response.data
- 
-#jobs update api
+
+#job update api and use dict to receive data
 @jobs_router.put("/{job_id}")
 def update_job(job_id, job: dict, user=Depends(get_current_user)):
  try:
@@ -90,8 +90,7 @@ def delete_job(job_id, user=Depends(get_current_user)):
     response = supabase.table("jobs").delete().eq("id", job_id).execute()
     
     return {"message": "Job deleted successfully"}
- except HTTPException:
-  raise
+ 
  except Exception as e:
     raise HTTPException(status_code=500, detail=f"error deleting job {str(e)}")
 
