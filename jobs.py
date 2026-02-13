@@ -46,7 +46,7 @@ def get_job(job_id: str):
     return response.data
 
 #Get all jobs api
-@jobs_router.get("/all_jobs")
+@jobs_router.get("/jobs")
 def get_all_jobs():
 
     response = supabase.table("jobs").select("*").order("created_at", desc=True).execute()

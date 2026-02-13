@@ -309,11 +309,17 @@ Content-Type: multipart/form-data
 - `category`: Blog category (required)
 - `internal_images`: Internal content images (optional, multiple)
 - `image`: Main thumbnail image (optional)
-- `slug`: URL slug for the blog (Optional - auto-generated from title)
-- `status`: insert the status to draft or live etc
+- `status`: Blog status (required - "live", "draft", or "scheduled")
+- `publish_at`: Scheduled publish datetime (required if status is "scheduled", format: ISO 8601)
 
 **Slug Generation:**
 The slug is automatically generated from the blog title by converting it to lowercase and replacing spaces with hyphens. For example, "Why UX Can Make Or Break" becomes "why-ux-can-make-or-break". Any manually provided slug value is ignored.
+
+**Scheduling Blogs:**
+- Set `status` to "scheduled" to schedule the blog for future publishing
+- Provide `publish_at` parameter with ISO 8601 datetime format (e.g., "2026-03-11T18:00:00")
+- The background scheduler will automatically change status to "live" when publish time arrives
+- All times are treated as Pakistan Standard Time (Asia/Karachi)
 
 **Response (200):**
 ```json
@@ -407,7 +413,8 @@ Content-Type: multipart/form-data
 - `image`: Main thumbnail image (file upload)
 - `thumbnail_image`: Blog thumbnail image (file upload)
 - `author_image`: Author profile image (file upload)
-- `status`: change the status to draft or live
+- `status`: Blog status ("live", "draft", or "scheduled")
+- `publish_at`: Scheduled publish datetime (ISO 8601 format, required if status is "scheduled")
 - `internal_images`: Internal content images (multiple file uploads)
 
 **Example cURL Request:**
@@ -470,46 +477,6 @@ Authorization: Bearer {access_token}
   "message": "Blog deleted successfully"
 }
 ```
-
-#### PATCH /blogs/schedule/{blog_id}
-Schedule a blog post for future publishing (Admin/Subadmin only).
-
-**Headers:**
-```
-Authorization: Bearer {access_token}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "publish_at": "2026-03-11T18:00:00"
-}
-```
-
-**Parameters:**
-- `publish_at`: ISO 8601 formatted datetime string when the blog should be published (required)
-
-**Response (200):**
-```json
-{
-  "message": "Blog scheduled successfully"
-}
-```
-
-**Example cURL Request:**
-```bash
-curl -X PATCH "http://localhost:8000/blogs/schedule/{blog_id}" \
-  -H "Authorization: Bearer {access_token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "publish_at": "2026-03-11T18:00:00"
-  }'
-```
-
-**Status Updates:**
-- Blog status is automatically set to "scheduled" when this endpoint is called
-- Database field `publish_at` stores the scheduled publication datetime
 
 #### PATCH /blogs/{blog_id}/publish
 Publish a scheduled blog post and change its status to "live" (Admin/Subadmin only).
@@ -656,7 +623,8 @@ Content-Type: application/json
   "job_des": "Job description...",
   "qualifications": "Required qualifications...",
   "salary_range": "$80,000 - $120,000",
-  "location": "Remote"
+  "location": "Remote",
+  "status": "live"
 }
 ```
 
@@ -670,6 +638,41 @@ Content-Type: application/json
   "job_description": "Job description...",
   "qualifications": "Required qualifications...",
   "salary_range": "$80,000 - $120,000",
+  "location": "Remote",
+  "status": "live",
+  "created_at": "2023-01-01T00:00:00Z"
+}]
+```
+
+#### PUT /jobs/{job_id}
+Update a job posting (Admin/Subadmin only).
+
+**Headers:**
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "title": "Updated Job Title",
+  "emp_type": "Part-time",
+  "job_des": "Updated description...",
+  "salary_range": "Updated range"
+}
+```
+
+**Response (200):**
+```json
+[{
+  "id": "uuid",
+  "title": "Updated Job Title",
+  "department": "Engineering",
+  "employment_type": "Part-time",
+  "job_description": "Updated description...",
+  "qualifications": "Required qualifications...",
+  "salary_range": "Updated range",
   "location": "Remote",
   "status": "live",
   "created_at": "2023-01-01T00:00:00Z"
@@ -714,24 +717,6 @@ Retrieve a specific job posting.
 }]
 ```
 
-#### PUT /jobs/{job_id}
-Update a job posting (Admin/Subadmin only).
-
-**Headers:**
-```
-Authorization: Bearer {access_token}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "title": "Updated Job Title",
-  "emp_type": "Part-time",
-  "job_des": "Updated description...",
-  "salary_range": "Updated range"
-}
-```
 
 #### PATCH /jobs/{job_id}/close
 Close a job posting (Admin/Subadmin only).
@@ -1063,6 +1048,46 @@ Stores uploaded resume files.
 - **File Format**: PDF
 - **Access**: Public (for download links)
 
+### Database Schema Updates
+
+#### blogs Table Schema
+```sql
+CREATE TABLE blogs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  thumbnail TEXT,
+  internal_urls TEXT[],
+  created_by UUID REFERENCES auth.users(id),
+  author VARCHAR(100) NOT NULL,
+  author_images TEXT,
+  author_overview TEXT,
+  cta TEXT,
+  tags TEXT[],
+  category VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  slug VARCHAR(255) UNIQUE,
+  status VARCHAR(20) DEFAULT 'live' CHECK (status IN ('live', 'draft', 'scheduled')),
+  publish_at TIMESTAMP WITH TIME ZONE
+);
+```
+
+#### jobs Table Schema
+```sql
+CREATE TABLE jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  department VARCHAR(100) NOT NULL,
+  employment_type VARCHAR(50) NOT NULL,
+  job_description TEXT,
+  qualifications TEXT NOT NULL,
+  salary_range VARCHAR(100),
+  location VARCHAR(255),
+  status VARCHAR(20) DEFAULT 'live' CHECK (status IN ('live', 'closed')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
 ## 🖼️ Image Upload Configuration
 
 ### Cloudinary Setup
@@ -1217,6 +1242,65 @@ except HTTPException:
 except Exception as e:
     raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 ```
+
+### Recent Improvements to blog_apis.py
+
+#### Enhanced Error Handling and Logging
+The blog API has been improved with comprehensive error handling and logging:
+
+- **Logging Configuration**: Added Python logging with INFO level for better debugging
+- **Supabase Client Initialization**: Wrapped in try-catch block with detailed error logging
+- **Improved Exception Handling**: Better error messages and status codes for debugging
+- **Cloudinary Integration**: Enhanced error handling for image upload operations
+
+#### New Features Added
+- **Slug-based Blog Retrieval**: Added `GET /blogs/slug/{slug}` endpoint for URL-friendly blog access
+- **Enhanced Form Data Support**: Improved PATCH endpoint to handle all optional fields properly
+- **Better File Upload Handling**: More robust image upload with proper error messages
+- **Role-based Access Control**: Enhanced admin/subadmin role checking with detailed error messages
+
+#### Error Handling Improvements
+- **Database Connection Errors**: Better handling of Supabase connection issues
+- **File Upload Errors**: More descriptive error messages for Cloudinary upload failures
+- **Authentication Errors**: Enhanced JWT token validation and role checking
+- **Global Exception Handler**: Improved error responses with CORS headers
+
+### main.py - Application Initialization and Scheduler Management
+
+The `main.py` file handles application setup and lifecycle management with special focus on the blog scheduler:
+
+#### Application Startup
+```python
+@app.on_event("startup")
+async def app_startup():
+    start_scheduler()
+```
+- **Purpose**: Initializes the background scheduler when the application starts
+- **Timing**: Runs once immediately when `uvicorn main:app --reload` is executed
+- **Action**: Calls `start_scheduler()` from `blog_apis.py` to begin checking scheduled blogs every minute
+
+#### Application Shutdown
+```python
+@app.on_event("shutdown")
+async def app_shutdown():
+    shutdown_scheduler()
+```
+- **Purpose**: Gracefully stops the background scheduler when the application shuts down
+- **Timing**: Runs when server is stopped (Ctrl+C or deployment termination)
+- **Action**: Calls `shutdown_scheduler()` from `blog_apis.py` to clean up scheduler threads
+
+#### Key Features in main.py
+- **CORS Configuration**: Allows requests from approved frontend domains
+- **Proxy Middleware**: Handles HTTPS headers from reverse proxies
+- **Global Exception Handler**: Catches and logs all unhandled errors
+- **Multiple Router Integration**: Loads all API routers (blogs, jobs, applications, etc.)
+
+#### Router Imports with Scheduler Support
+```python
+from blog_apis import blog_router, start_scheduler, shutdown_scheduler
+```
+- Imports blog router and scheduler functions from `blog_apis.py`
+- Essential for application to manage background scheduler lifecycle
 
 ### Common Error Scenarios
 
