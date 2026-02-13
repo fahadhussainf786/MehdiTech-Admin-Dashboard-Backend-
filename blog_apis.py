@@ -153,6 +153,8 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
         #now if status is scheduled and publish_at is provided then make blog status scheduled
         if status == "Scheduled" and publish_at:
             status = "scheduled"
+        elif status == "Scheduled" and not publish_at:
+            raise HTTPException(status_code=400, detail="Publish time required for scheduled blogs")
         
         try:
             supabase.table("blogs").insert({
