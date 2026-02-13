@@ -16,7 +16,7 @@ import pytz
 
 load_dotenv()
 
-# Pydantic model for scheduling blogs
+#Publish_at work as 
 class ScheduleBlogRequest(BaseModel):
     publish_at: datetime
 
@@ -45,7 +45,7 @@ def auto_publish_blogs():
         blogs = supabase.table("blogs").select("id, publish_at").eq("status", "scheduled").execute()
         pst = pytz.timezone('Asia/Karachi')
         now = datetime.now(pst)
-        
+
         for blog in blogs.data:
             if blog.get("publish_at"):
                 publish_time = datetime.fromisoformat(blog["publish_at"].replace('Z', '+00:00'))
@@ -60,7 +60,7 @@ scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Karachi'))
 
 def start_scheduler():
     if not scheduler.running:
-        scheduler.add_job(auto_publish_blogs, 'interval', minutes=1)
+        scheduler.add_job(auto_publish_blogs, 'interval', minutes= 1)
         scheduler.start()
 
 def shutdown_scheduler():
@@ -92,6 +92,7 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 tags:str = Form(...),
                 category: str = Form(...),
                 internal_images: Optional[List[UploadFile]]= File(None),
+                publish_at: Optional[datetime] = Form(None),
                 image: Optional[UploadFile] = File(None), user=Depends(get_current_user)):
     try:
         check_admin_or_subadmin(user)
@@ -149,7 +150,10 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
 
         #convert title to lowercase and replace spaces with hyphens for slug
         slug_url = title.lower().replace(" ", "-")
-
+        #now if status is scheduled and publish_at is provided then make blog status scheduled
+        if status == "Scheduled" and publish_at:
+            status = "scheduled"
+        
         try:
             supabase.table("blogs").insert({
                 "title": title,
@@ -168,7 +172,9 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                 "cta": cta,
                 "tags": tags_list,
                 "category": category,
-                "status": status
+                "status": status,
+                "publish_at": publish_at.isoformat() if publish_at else None
+
             }).execute()
         except Exception as db_error:
             raise HTTPException(
@@ -212,6 +218,7 @@ def get_blog(blog_id: str):
         if not blog.data:
             raise HTTPException(status_code=404, detail="Blog not found")
         return {"blog": blog.data[0]}
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -315,7 +322,7 @@ async def update_blog(blog_id: str,
 
         # Prepare update data - only include fields that are provided
         update_data = {}
-        
+        #if there is already something in the field then only update otherwise keep it as it is
         if title is not None:
             update_data["title"] = title
         if content is not None:
