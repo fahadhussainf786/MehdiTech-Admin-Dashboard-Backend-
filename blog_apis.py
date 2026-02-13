@@ -52,7 +52,7 @@ def auto_publish_blogs():
                 publish_time_pst = publish_time.astimezone(pst)
                 if publish_time_pst <= now:
                     supabase.table("blogs").update({"status": "live"}).eq("id", blog["id"]).execute()
-    
+
     except Exception as e:
         print(f"Scheduler error: {str(e)}")
 
@@ -143,19 +143,29 @@ async def create_blog(title:str = Form(...),#Parameters that passes below supaba
                     status_code=400,
                     detail=f"Thumbnail image upload failed: {str(e)}"
                 )
-        
+            
         # Convert comma text to list
         tags_list = tags.split(",")
         keywords_list = [k.strip() for k in keywords.split(",")] if keywords else None
 
         #convert title to lowercase and replace spaces with hyphens for slug
         slug_url = title.lower().replace(" ", "-")
+        #we have to perform auto_publish_blogs
+        if status == "scheduled" and publish_at:
+            auto_publish_blogs()
+
         #now if status is scheduled and publish_at is provided then make blog status scheduled
         if status == "Scheduled" and publish_at:
-            status = "scheduled"
+            status = "Scheduled"
         elif status == "Scheduled" and not publish_at:
             raise HTTPException(status_code=400, detail="Publish time required for scheduled blogs")
-        
+        elif publish_at and publish_at < datetime.now():
+            raise HTTPException(status_code=400, detail="Publish time must be in the future for scheduled blogs")
+        #if status is live then publish_at should be null
+        elif status == "live":
+            publish_at = None
+            
+#here we can use logic in tables
         try:
             supabase.table("blogs").insert({
                 "title": title,
